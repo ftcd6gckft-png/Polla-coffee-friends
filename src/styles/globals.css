@@ -1,0 +1,254 @@
+/* ───────────────────────────────────────────────────────────
+   Coffee'n Jesus Chickengirl - Estilos globales
+   Branding: Pantone 2567 U (#C09FDB lavanda) primario
+             Pantone 7471 U (#7FE2D8 turquesa) acento
+   Sobre fondo oscuro para que los pasteles vibren
+   ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Paleta marca */
+  --lavender:    #C09FDB;  /* Pantone 2567 U */
+  --lavender-2:  #D4BBE8;
+  --lavender-3:  #8E6AB6;
+  --turquoise:   #7FE2D8;  /* Pantone 7471 U */
+  --turquoise-2: #A8EDE5;
+  --turquoise-3: #4FB8AE;
+
+  /* Estructura oscura */
+  --bg:        #0a0612;
+  --surface:   #140e22;
+  --card:      #1a1230;
+  --border:    #2a1f44;
+  --border-2:  #3d2e5f;
+
+  /* Texto */
+  --text:      #ede4f5;
+  --muted:     #8675a8;
+  --muted-2:   #5e4d80;
+
+  /* Semánticos */
+  --success:   var(--turquoise);
+  --warning:   #f5c842;
+  --danger:    #e8567a;
+
+  --radius:    14px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+}
+
+* , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--lavender-3); }
+
+a { color: var(--turquoise); text-decoration: none; }
+a:hover { color: var(--turquoise-2); text-decoration: underline; }
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* ─── Fondo decorativo: orbes pastel ─── */
+.bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg-orbs::before, .bg-orbs::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.25;
+}
+.bg-orbs::before {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--lavender), transparent 65%);
+  top: -200px; right: -150px;
+}
+.bg-orbs::after {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, var(--turquoise), transparent 65%);
+  bottom: -180px; left: -120px;
+}
+
+.bg-noise::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* ─── Tipografía display ─── */
+.display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
+
+/* ─── Botones base ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  transition: all 0.18s ease;
+}
+.btn-primary {
+  background: var(--lavender);
+  color: #1a0a30;
+}
+.btn-primary:hover {
+  background: var(--lavender-2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(192, 159, 219, 0.3);
+}
+.btn-accent {
+  background: var(--turquoise);
+  color: #0a302d;
+}
+.btn-accent:hover {
+  background: var(--turquoise-2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(127, 226, 216, 0.3);
+}
+.btn-ghost {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+}
+.btn-ghost:hover {
+  border-color: var(--lavender);
+  background: rgba(192, 159, 219, 0.05);
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ─── App shell ─── */
+.app-shell {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container helper */
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Toast (mensajes flotantes) */
+.toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.25s ease;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Pantalla de carga / placeholder de Entrega 1 ─── */
+.landing {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 24px;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  border: 1px solid var(--border-2);
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.brand-mark .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--turquoise);
+  box-shadow: 0 0 12px var(--turquoise);
+}
+.title-main {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 8vw, 72px);
+  line-height: 0.95;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--lavender), var(--turquoise));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.subtitle {
+  font-size: clamp(14px, 2.4vw, 18px);
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.5;
+}
+.diag-card {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  max-width: 460px;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+.diag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.diag-row:last-child { border-bottom: none; }
+.diag-label { color: var(--muted); }
+.diag-value { font-weight: 600; font-family: 'Outfit', sans-serif; }
+.diag-ok { color: var(--turquoise); }
+.diag-bad { color: var(--danger); }
+
+@media (max-width: 600px) {
+  .container { padding: 0 14px; }
+}

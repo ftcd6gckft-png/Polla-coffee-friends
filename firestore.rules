@@ -1,0 +1,17 @@
+// Reglas de seguridad de Firestore — preview de Entrega 1
+// Estas reglas son temporales para empezar. Se refinan en la Entrega 4
+// con permisos finos por polla, super-admin, etc.
+//
+// IMPORTANTE: NO publiques estas reglas tal cual en producción real con datos sensibles.
+// Para la Entrega 1 son seguras porque solo permiten lectura/escritura a usuarios logueados.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Por defecto: solo usuarios autenticados pueden leer/escribir
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

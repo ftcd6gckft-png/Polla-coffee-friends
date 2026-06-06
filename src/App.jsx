@@ -35,7 +35,7 @@ function Landing() {
       try {
         // Hacemos un query trivial a una colección que muy probablemente no existe.
         // Si las credenciales son válidas, Firestore responde (con 0 docs); si no, da error.
-        const q = query(collection(db, '__diagnostic__'), limit(1));
+       const q = query(collection(db, '_diagnostic'), limit(1));
         await getDocs(q);
         if (!cancelled) setFirestoreOk(true);
       } catch (e) {

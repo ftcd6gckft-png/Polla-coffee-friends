@@ -1,0 +1,518 @@
+/* ───────────────────────────────────────────────────────────
+   Coffee'n Jesus Chickengirl - Estilos Entrega 2
+   Header, formularios de auth, pollas, etc.
+   ─────────────────────────────────────────────────────────── */
+
+/* HEADER */
+.cnj-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 6, 18, 0.88);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cnj-header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.cnj-header-logo:hover { text-decoration: none; }
+.cnj-header-logo em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--lavender), var(--turquoise));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+.cnj-logo-text {
+  font-size: 13px;
+}
+.cnj-logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--turquoise);
+  box-shadow: 0 0 12px var(--turquoise);
+}
+.cnj-header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cnj-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lavender), var(--turquoise));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #1a0a30;
+}
+.cnj-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* BADGES */
+.cnj-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+.cnj-badge-admin {
+  background: rgba(192, 159, 219, 0.15);
+  color: var(--lavender);
+  border: 1px solid rgba(192, 159, 219, 0.3);
+}
+
+/* BUTTONS extra */
+.btn-xs {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.btn-full {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* MAIN */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.cnj-page {
+  padding: 32px 20px 60px;
+}
+
+/* LANDING */
+.cnj-cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+.cnj-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  max-width: 700px;
+  width: 100%;
+  margin-top: 24px;
+}
+.cnj-feature {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cnj-feature-icon { font-size: 24px; }
+.cnj-feature-text { font-size: 13px; color: var(--muted); }
+.cnj-feature-text strong { color: var(--turquoise); font-weight: 700; }
+.cnj-footnote {
+  font-size: 11px;
+  color: var(--muted-2);
+  letter-spacing: 0.5px;
+  margin-top: 16px;
+}
+
+/* AUTH */
+.auth-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+}
+.auth-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 2px;
+  color: var(--lavender);
+  margin-bottom: 6px;
+}
+.auth-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+.auth-foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.auth-foot a {
+  color: var(--turquoise);
+  text-decoration: underline;
+}
+
+/* FORM */
+.fg { margin-bottom: 14px; }
+.fl {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.fi {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  outline: none;
+  transition: border 0.18s;
+}
+.fi:focus {
+  border-color: var(--lavender);
+  background: rgba(192, 159, 219, 0.04);
+}
+.fi::placeholder { color: var(--muted-2); }
+.fhelp {
+  font-size: 11px;
+  color: var(--muted-2);
+  margin-top: 5px;
+}
+.err {
+  background: rgba(232, 86, 122, 0.1);
+  border: 1px solid rgba(232, 86, 122, 0.3);
+  color: var(--danger);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+/* MY POOLS / HELLO */
+.cnj-hello { margin-bottom: 24px; }
+.cnj-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(36px, 6vw, 52px);
+  letter-spacing: 2px;
+  color: var(--text);
+  line-height: 1;
+}
+.cnj-h1-accent {
+  background: linear-gradient(135deg, var(--lavender), var(--turquoise));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cnj-h1-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.cnj-pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+.cnj-pool-card {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.18s;
+  position: relative;
+}
+.cnj-pool-card:hover {
+  border-color: var(--lavender);
+  background: rgba(192, 159, 219, 0.04);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.cnj-pool-name {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.cnj-pool-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cnj-pool-code {
+  font-family: monospace;
+  background: var(--surface);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--turquoise);
+  font-weight: 600;
+}
+.cnj-pool-card .cnj-badge-admin {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+/* CREATE POOL SUCCESS */
+.cnj-success {
+  text-align: center;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 40px 0;
+}
+.cnj-code-display {
+  background: var(--card);
+  border: 2px dashed var(--lavender);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin: 28px auto;
+  max-width: 380px;
+}
+.cnj-code-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.cnj-code-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  letter-spacing: 4px;
+  color: var(--lavender);
+  user-select: all;
+}
+.cnj-share-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.cnj-invite-url {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.cnj-invite-url code {
+  background: none;
+  color: var(--turquoise);
+}
+
+/* JOIN POOL */
+.cnj-code-input {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 22px !important;
+  letter-spacing: 3px;
+  text-align: center;
+}
+.cnj-preview-card {
+  background: rgba(192, 159, 219, 0.06);
+  border: 1px solid rgba(192, 159, 219, 0.25);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 18px 0;
+  text-align: center;
+}
+.cnj-preview-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.cnj-preview-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  color: var(--lavender);
+}
+.cnj-preview-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.cnj-preview-note {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cnj-preview-note.ok { color: var(--turquoise); }
+.cnj-preview-note.bad { color: var(--danger); }
+
+/* POOL VIEW */
+.cnj-pool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.cnj-back-link {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+.cnj-back-link:hover { color: var(--turquoise); text-decoration: underline; }
+.cnj-pool-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.cnj-pool-header-meta strong {
+  font-family: monospace;
+  color: var(--turquoise);
+}
+
+.cnj-soon-card {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.cnj-soon-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: var(--lavender);
+  margin-bottom: 10px;
+}
+.cnj-soon-text {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.cnj-soon-checklist {
+  text-align: left;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cnj-soon-item {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+/* LOADING */
+.cnj-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.cnj-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border-2);
+  border-top-color: var(--lavender);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.25s ease;
+}
+.toast-warn { border-color: rgba(245, 200, 66, 0.4); }
+.toast-error { border-color: var(--danger); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .cnj-header { padding: 10px 14px; }
+  .cnj-logo-text { font-size: 12px; }
+  .cnj-user-name { display: none; }
+  .cnj-pool-header { flex-direction: column; align-items: flex-start; }
+  .cnj-code-value { font-size: 32px; letter-spacing: 2px; }
+  .auth-card { padding: 28px 22px; }
+}

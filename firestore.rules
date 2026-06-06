@@ -1,17 +1,42 @@
-// Reglas de seguridad de Firestore — preview de Entrega 1
-// Estas reglas son temporales para empezar. Se refinan en la Entrega 4
-// con permisos finos por polla, super-admin, etc.
-//
-// IMPORTANTE: NO publiques estas reglas tal cual en producción real con datos sensibles.
-// Para la Entrega 1 son seguras porque solo permiten lectura/escritura a usuarios logueados.
+// Reglas de seguridad de Firestore — Entrega 2 (intermedias)
+// Refinaremos en Entrega 4 con super-admin global, validación de límites, etc.
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Por defecto: solo usuarios autenticados pueden leer/escribir
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // ─── USERS ───────────────────────────────────────────────────
+    // Cada usuario puede leer/escribir SOLO su propio documento.
+    // Esto evita que otros lean tus pollas o datos personales.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ─── POOLS ───────────────────────────────────────────────────
+    // Read: cualquier usuario autenticado puede leer una polla (necesario
+    // para que el preview al unirse funcione antes de ser miembro).
+    // Create: cualquier usuario autenticado puede crear una polla nueva
+    //         (siempre que se ponga a sí mismo como admin y único miembro).
+    // Update: cualquier usuario autenticado puede actualizar (para joins).
+    //         En Entrega 4 restringiremos quién puede editar qué campos.
+    match /pools/{pollId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.adminUid == request.auth.uid
+                    && request.resource.data.members.size() == 1
+                    && request.resource.data.members[0] == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null
+                    && resource.data.adminUid == request.auth.uid;
+    }
+
+    // ─── INVITE CODES ────────────────────────────────────────────
+    // Read: cualquiera autenticado (para resolver el código al unirse).
+    // Write: cualquiera autenticado (necesario al crear una polla).
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      // No se pueden borrar ni actualizar - los códigos son inmutables.
     }
   }
 }

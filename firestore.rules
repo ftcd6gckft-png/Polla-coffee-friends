@@ -1,24 +1,26 @@
-// Reglas de seguridad de Firestore — Entrega 2 (intermedias)
-// Refinaremos en Entrega 4 con super-admin global, validación de límites, etc.
+// Reglas de seguridad de Firestore — Entrega 3 Parte 1
+// Agrega: predictions (cada usuario solo edita las suyas) y officialResults (solo super-admin escribe)
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper: ¿el usuario es super-admin?
+    // El email del super-admin se inyecta como custom claim, pero como no estamos
+    // usando claims aún, comparamos contra una lista de emails. Para mantenerlo simple
+    // y trabajable, leemos el email del token de auth.
+    // En la Entrega 4 lo refinaremos.
+    function isSuperAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'camilocasteblanco93@gmail.com';
+    }
+
     // ─── USERS ───────────────────────────────────────────────────
-    // Cada usuario puede leer/escribir SOLO su propio documento.
-    // Esto evita que otros lean tus pollas o datos personales.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // ─── POOLS ───────────────────────────────────────────────────
-    // Read: cualquier usuario autenticado puede leer una polla (necesario
-    // para que el preview al unirse funcione antes de ser miembro).
-    // Create: cualquier usuario autenticado puede crear una polla nueva
-    //         (siempre que se ponga a sí mismo como admin y único miembro).
-    // Update: cualquier usuario autenticado puede actualizar (para joins).
-    //         En Entrega 4 restringiremos quién puede editar qué campos.
     match /pools/{pollId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -28,15 +30,29 @@ service cloud.firestore {
       allow update: if request.auth != null;
       allow delete: if request.auth != null
                     && resource.data.adminUid == request.auth.uid;
+
+      // ─── PREDICTIONS (subcolección de pools) ────────────────────
+      // Cada usuario solo puede leer/escribir su propio doc de predicciones.
+      // Los demás miembros de la polla NO ven los pronósticos de otros.
+      // (En Entrega 4 podemos cambiar esto si quieres que se vean los pronósticos
+      // ajenos después del lock — por ahora son privados.)
+      match /predictions/{userId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // ─── INVITE CODES ────────────────────────────────────────────
-    // Read: cualquiera autenticado (para resolver el código al unirse).
-    // Write: cualquiera autenticado (necesario al crear una polla).
     match /inviteCodes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      // No se pueden borrar ni actualizar - los códigos son inmutables.
+    }
+
+    // ─── OFFICIAL RESULTS ────────────────────────────────────────
+    // Cualquier usuario autenticado puede LEER (se necesita para calcular puntos).
+    // Solo el super-admin puede ESCRIBIR.
+    match /officialResults/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin();
     }
   }
 }

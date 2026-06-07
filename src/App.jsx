@@ -10,6 +10,7 @@ import MyPools from './pages/MyPools.jsx';
 import CreatePool from './pages/CreatePool.jsx';
 import JoinPool from './pages/JoinPool.jsx';
 import PoolView from './pages/PoolView.jsx';
+import AdminPage from './pages/AdminPage.jsx';
 
 function NotFound() {
   return (
@@ -21,11 +22,6 @@ function NotFound() {
   );
 }
 
-/**
- * Decide qué mostrar en "/":
- *   - Sin sesión → Landing público con CTAs
- *   - Con sesión → Listado de "Mis pollas"
- */
 function HomeRoute() {
   const { user, loading } = useAuth();
   if (loading) {
@@ -53,7 +49,6 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
 
-              {/* Rutas protegidas (requieren login) */}
               <Route path="/crear-polla" element={
                 <RequireAuth><CreatePool /></RequireAuth>
               } />
@@ -65,6 +60,9 @@ export default function App() {
               } />
               <Route path="/polla/:pollaId" element={
                 <RequireAuth><PoolView /></RequireAuth>
+              } />
+              <Route path="/admin" element={
+                <RequireAuth><AdminPage /></RequireAuth>
               } />
 
               <Route path="*" element={<NotFound />} />

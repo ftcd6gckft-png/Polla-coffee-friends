@@ -4,6 +4,10 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { getPool } from '../lib/pools.js';
 import { useToast } from '../components/Toast.jsx';
 import GroupPredictionsTab from '../components/GroupPredictionsTab.jsx';
+import BracketTab from '../components/BracketTab.jsx';
+import ChampionTab from '../components/ChampionTab.jsx';
+import RankingTab from '../components/RankingTab.jsx';
+import RankingUpdater from '../components/RankingUpdater.jsx';
 
 const TABS = [
   { id: 'grupos',   label: 'Fase de grupos', icon: '⚽' },
@@ -89,6 +93,9 @@ export default function PoolView() {
 
   return (
     <div className="container cnj-page">
+      {/* Componente invisible: mantiene sincronizadas las stats del usuario para el ranking */}
+      <RankingUpdater pollId={pool.id} />
+
       <div className="cnj-pool-header">
         <div>
           <Link to="/" className="cnj-back-link">← Mis pollas</Link>
@@ -125,46 +132,10 @@ export default function PoolView() {
       </nav>
 
       <div className="pool-tab-content">
-        {activeTab === 'grupos' && <GroupPredictionsTab pollId={pool.id} />}
-
-        {activeTab === 'bracket' && (
-          <SoonPanel
-            title="Bracket de eliminatorias"
-            text="Se desbloqueará automáticamente cuando termine la fase de grupos (28 de junio). Cuando los 72 partidos de grupos tengan resultado oficial, podrás pronosticar octavos, cuartos, semis, 3er puesto y final."
-            items={['16 partidos de dieciseisavos', '8 de octavos', '4 de cuartos', '2 semifinales', '3er puesto · 18 jul', 'Final · 19 jul · MetLife']}
-          />
-        )}
-
-        {activeTab === 'campeon' && (
-          <SoonPanel
-            title="Pronóstico de campeón"
-            text="Selecciona quién crees que ganará el Mundial 2026 entre las 48 selecciones. Si aciertas, ganas 5 puntos al final del torneo. Disponible en la próxima entrega."
-            items={['+5 pts si aciertas', 'Bloqueado al inicio del Mundial', 'Una elección por polla']}
-          />
-        )}
-
-        {activeTab === 'ranking' && (
-          <SoonPanel
-            title="Tabla de posiciones"
-            text="Aquí aparecerá el ranking de todos los miembros de esta polla ordenados por puntaje. Se actualiza automáticamente conforme se cargan los resultados oficiales."
-            items={['Puntos totales · exactos · ganadores', 'Tu posición destacada', 'Empate desempata por exactos']}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SoonPanel({ title, text, items }) {
-  return (
-    <div className="cnj-soon-card">
-      <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
-      <h2 className="cnj-soon-title">{title}</h2>
-      <p className="cnj-soon-text">{text}</p>
-      <div className="cnj-soon-checklist">
-        {items.map((i) => (
-          <div key={i} className="cnj-soon-item">• {i}</div>
-        ))}
+        {activeTab === 'grupos'   && <GroupPredictionsTab pollId={pool.id} />}
+        {activeTab === 'bracket'  && <BracketTab pollId={pool.id} />}
+        {activeTab === 'campeon'  && <ChampionTab pollId={pool.id} />}
+        {activeTab === 'ranking'  && <RankingTab pollId={pool.id} />}
       </div>
     </div>
   );

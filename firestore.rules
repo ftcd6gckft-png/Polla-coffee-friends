@@ -1,15 +1,12 @@
-// Reglas de seguridad de Firestore — Entrega 3 Parte 1
-// Agrega: predictions (cada usuario solo edita las suyas) y officialResults (solo super-admin escribe)
+// Reglas de seguridad de Firestore — Entrega 3 Parte 2 (FINAL)
+//
+// IMPORTANTE: cambia 'camilocasteblanco93@gmail.com' por tu email de super-admin
+// si es distinto. Es la única línea que necesitas verificar antes de publicar.
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: ¿el usuario es super-admin?
-    // El email del super-admin se inyecta como custom claim, pero como no estamos
-    // usando claims aún, comparamos contra una lista de emails. Para mantenerlo simple
-    // y trabajable, leemos el email del token de auth.
-    // En la Entrega 4 lo refinaremos.
     function isSuperAdmin() {
       return request.auth != null
         && request.auth.token.email == 'camilocasteblanco93@gmail.com';
@@ -31,13 +28,17 @@ service cloud.firestore {
       allow delete: if request.auth != null
                     && resource.data.adminUid == request.auth.uid;
 
-      // ─── PREDICTIONS (subcolección de pools) ────────────────────
-      // Cada usuario solo puede leer/escribir su propio doc de predicciones.
-      // Los demás miembros de la polla NO ven los pronósticos de otros.
-      // (En Entrega 4 podemos cambiar esto si quieres que se vean los pronósticos
-      // ajenos después del lock — por ahora son privados.)
+      // PREDICTIONS: cada usuario solo edita las suyas
       match /predictions/{userId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // STATS: cada usuario publica las suyas; cualquier miembro de la polla puede leerlas
+      // (necesario para mostrar el ranking)
+      match /stats/{userId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/pools/$(pollId)).data.members;
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
@@ -48,8 +49,8 @@ service cloud.firestore {
     }
 
     // ─── OFFICIAL RESULTS ────────────────────────────────────────
-    // Cualquier usuario autenticado puede LEER (se necesita para calcular puntos).
-    // Solo el super-admin puede ESCRIBIR.
+    // Lectura: cualquier autenticado (para calcular puntos)
+    // Escritura: solo super-admin
     match /officialResults/{document=**} {
       allow read: if request.auth != null;
       allow write: if isSuperAdmin();

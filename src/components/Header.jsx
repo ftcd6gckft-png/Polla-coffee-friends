@@ -31,7 +31,11 @@ export default function Header() {
 
       {user ? (
         <div className="cnj-header-user">
-          {isSuperAdmin && <span className="cnj-badge cnj-badge-admin">SUPER ADMIN</span>}
+          {isSuperAdmin && (
+            <Link to="/admin" className="cnj-badge cnj-badge-admin cnj-badge-link" title="Panel super-admin">
+              ⚙ ADMIN
+            </Link>
+          )}
           <div className="cnj-avatar" title={user.email}>{initials}</div>
           <span className="cnj-user-name">{userDoc?.displayName || user.email}</span>
           <button className="btn btn-ghost btn-xs" onClick={handleSignOut}>

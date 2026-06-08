@@ -13,6 +13,7 @@ import { isMatchLocked } from '../lib/time.js';
 import { calcMatchPoints, isPredictionComplete } from '../lib/scoring.js';
 import GroupSelector from './GroupSelector.jsx';
 import MatchPredictionCard from './MatchPredictionCard.jsx';
+import MatchesByDateView from './MatchesByDateView.jsx';
 
 export default function GroupPredictionsTab({ pollId }) {
   const { user } = useAuth();
@@ -23,9 +24,9 @@ export default function GroupPredictionsTab({ pollId }) {
   const [loadingPred, setLoadingPred] = useState(true);
   const [loadingResults, setLoadingResults] = useState(true);
   const [activeGroup, setActiveGroup] = useState(GROUPS[0]);
+  const [viewMode, setViewMode] = useState('groups'); // 'groups' | 'date'
   const now = useNow(30 * 1000);
 
-  // Suscripción a propias predicciones (para edición)
   useEffect(() => {
     if (!pollId || !user) return;
     const unsub = subscribeToPredictions(pollId, user.uid, (data) => {
@@ -35,7 +36,6 @@ export default function GroupPredictionsTab({ pollId }) {
     return unsub;
   }, [pollId, user?.uid]);
 
-  // Suscripción a resultados oficiales
   useEffect(() => {
     const unsub = subscribeToGroupResults((data) => {
       setResults(data || {});
@@ -44,14 +44,12 @@ export default function GroupPredictionsTab({ pollId }) {
     return unsub;
   }, []);
 
-  // Suscripción a TODAS las predicciones de la polla (para mostrar lista pública)
   useEffect(() => {
     if (!pollId) return;
     const unsub = subscribeToAllPoolPredictions(pollId, setAllPredictions);
     return unsub;
   }, [pollId]);
 
-  // Suscripción a stats (para tener uid → displayName)
   useEffect(() => {
     if (!pollId) return;
     const unsub = subscribeToPoolStats(pollId, setStats);
@@ -75,27 +73,59 @@ export default function GroupPredictionsTab({ pollId }) {
     <div className="preds-tab">
       <PredsHeader stats={headerStats} />
 
-      <GroupSelector
-        activeGroup={activeGroup}
-        onChange={setActiveGroup}
-        predictions={groupPredictions}
-      />
-
-      <div className="preds-list">
-        {matchesInGroup.map((match) => (
-          <MatchPredictionCard
-            key={match.id}
-            match={match}
-            prediction={groupPredictions[match.id] || null}
-            result={results[match.id] || null}
-            now={now}
-            pollId={pollId}
-            userId={user.uid}
-            allPredictions={allPredictions}
-            stats={stats}
-          />
-        ))}
+      {/* Sub-tabs: Por grupos / Por fecha */}
+      <div className="subview-tabs">
+        <button
+          className={`subview-tab ${viewMode === 'groups' ? 'is-active' : ''}`}
+          onClick={() => setViewMode('groups')}
+        >
+          🔠 Por grupos
+        </button>
+        <button
+          className={`subview-tab ${viewMode === 'date' ? 'is-active' : ''}`}
+          onClick={() => setViewMode('date')}
+        >
+          📅 Por fecha
+        </button>
       </div>
+
+      {viewMode === 'groups' && (
+        <>
+          <GroupSelector
+            activeGroup={activeGroup}
+            onChange={setActiveGroup}
+            predictions={groupPredictions}
+          />
+
+          <div className="preds-list">
+            {matchesInGroup.map((match) => (
+              <MatchPredictionCard
+                key={match.id}
+                match={match}
+                prediction={groupPredictions[match.id] || null}
+                result={results[match.id] || null}
+                now={now}
+                pollId={pollId}
+                userId={user.uid}
+                allPredictions={allPredictions}
+                stats={stats}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {viewMode === 'date' && (
+        <MatchesByDateView
+          pollId={pollId}
+          userId={user.uid}
+          predictions={predictions}
+          results={results}
+          now={now}
+          allPredictions={allPredictions}
+          stats={stats}
+        />
+      )}
 
       <div className="preds-tip">
         <strong>💡 Tip:</strong> tus pronósticos se guardan automáticamente. Puedes editarlos las
@@ -110,7 +140,6 @@ export default function GroupPredictionsTab({ pollId }) {
 
 function computeStats(predsMap, resultsMap, now) {
   let total = 0, completed = 0, locked = 0, points = 0, exact = 0, winner = 0, scored = 0;
-
   for (const m of GROUP_MATCHES) {
     total += 1;
     const p = predsMap[m.id];

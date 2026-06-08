@@ -2,29 +2,30 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { GROUPS } from '../data/teams.js';
-import { subscribeToPredictions, subscribeToGroupResults } from '../lib/predictions.js';
+import {
+  subscribeToPredictions,
+  subscribeToGroupResults,
+  subscribeToAllPoolPredictions,
+} from '../lib/predictions.js';
+import { subscribeToPoolStats } from '../lib/predictionsExtended.js';
 import { useNow } from '../hooks/useNow.js';
 import { isMatchLocked } from '../lib/time.js';
 import { calcMatchPoints, isPredictionComplete } from '../lib/scoring.js';
 import GroupSelector from './GroupSelector.jsx';
 import MatchPredictionCard from './MatchPredictionCard.jsx';
 
-/**
- * Pestaña de pronósticos de la fase de grupos para una polla específica.
- *
- * Props:
- *   pollId → string
- */
 export default function GroupPredictionsTab({ pollId }) {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState(null);
   const [results, setResults] = useState({});
+  const [allPredictions, setAllPredictions] = useState([]);
+  const [stats, setStats] = useState([]);
   const [loadingPred, setLoadingPred] = useState(true);
   const [loadingResults, setLoadingResults] = useState(true);
   const [activeGroup, setActiveGroup] = useState(GROUPS[0]);
-  const now = useNow(30 * 1000); // re-evalúa lock cada 30s
+  const now = useNow(30 * 1000);
 
-  // Suscripciones en tiempo real
+  // Suscripción a propias predicciones (para edición)
   useEffect(() => {
     if (!pollId || !user) return;
     const unsub = subscribeToPredictions(pollId, user.uid, (data) => {
@@ -34,6 +35,7 @@ export default function GroupPredictionsTab({ pollId }) {
     return unsub;
   }, [pollId, user?.uid]);
 
+  // Suscripción a resultados oficiales
   useEffect(() => {
     const unsub = subscribeToGroupResults((data) => {
       setResults(data || {});
@@ -42,11 +44,23 @@ export default function GroupPredictionsTab({ pollId }) {
     return unsub;
   }, []);
 
+  // Suscripción a TODAS las predicciones de la polla (para mostrar lista pública)
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToAllPoolPredictions(pollId, setAllPredictions);
+    return unsub;
+  }, [pollId]);
+
+  // Suscripción a stats (para tener uid → displayName)
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToPoolStats(pollId, setStats);
+    return unsub;
+  }, [pollId]);
+
   const groupPredictions = predictions?.groupMatches || {};
   const matchesInGroup = GROUP_MATCHES.filter((m) => m.group === activeGroup);
-
-  // Estadísticas globales para el header
-  const stats = computeStats(groupPredictions, results, now);
+  const headerStats = computeStats(groupPredictions, results, now);
 
   if (loadingPred || loadingResults) {
     return (
@@ -59,7 +73,7 @@ export default function GroupPredictionsTab({ pollId }) {
 
   return (
     <div className="preds-tab">
-      <PredsHeader stats={stats} />
+      <PredsHeader stats={headerStats} />
 
       <GroupSelector
         activeGroup={activeGroup}
@@ -77,6 +91,8 @@ export default function GroupPredictionsTab({ pollId }) {
             now={now}
             pollId={pollId}
             userId={user.uid}
+            allPredictions={allPredictions}
+            stats={stats}
           />
         ))}
       </div>
@@ -84,7 +100,7 @@ export default function GroupPredictionsTab({ pollId }) {
       <div className="preds-tip">
         <strong>💡 Tip:</strong> tus pronósticos se guardan automáticamente. Puedes editarlos las
         veces que quieras hasta 15 minutos antes del inicio del partido. Después, quedan
-        bloqueados y solo se calculan los puntos cuando se cargue el resultado oficial.
+        bloqueados y podrás ver los pronósticos de todos los miembros de la polla.
       </div>
     </div>
   );
@@ -93,13 +109,7 @@ export default function GroupPredictionsTab({ pollId }) {
 // ─────────────────────────────────────────────────────────────────
 
 function computeStats(predsMap, resultsMap, now) {
-  let total = 0;
-  let completed = 0;
-  let locked = 0;
-  let points = 0;
-  let exact = 0;
-  let winner = 0;
-  let scored = 0; // partidos con resultado oficial cargado
+  let total = 0, completed = 0, locked = 0, points = 0, exact = 0, winner = 0, scored = 0;
 
   for (const m of GROUP_MATCHES) {
     total += 1;

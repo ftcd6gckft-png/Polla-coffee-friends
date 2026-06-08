@@ -5,7 +5,7 @@
 
 export const GROUP_MATCHES = [
   // ─── MATCHDAY 1 (Jun 11 - 17) ─────────────────────────────
-  { id: 'G01', group: 'A', matchday: 1, date: '2026-06-11', time: '14:00', home: 'MEX', away: 'RSA', city: 'Ciudad de México', venue: 'Estadio Azteca' },
+  { id: 'G01', group: 'A', matchday: 1, date: '2026-06-08', time: '09:00', home: 'MEX', away: 'RSA', city: 'Ciudad de México', venue: 'Estadio Azteca' },
   { id: 'G02', group: 'A', matchday: 1, date: '2026-06-11', time: '21:00', home: 'KOR', away: 'CZE', city: 'Guadalajara', venue: 'Estadio Akron' },
   { id: 'G03', group: 'B', matchday: 1, date: '2026-06-12', time: '14:00', home: 'CAN', away: 'BIH', city: 'Toronto', venue: 'BMO Field' },
   { id: 'G04', group: 'D', matchday: 1, date: '2026-06-12', time: '20:00', home: 'USA', away: 'PAR', city: 'Los Ángeles', venue: 'SoFi Stadium' },

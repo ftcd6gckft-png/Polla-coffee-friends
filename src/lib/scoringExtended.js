@@ -1,23 +1,21 @@
 // ─────────────────────────────────────────────────────────────────
-// Scoring extendido — Entrega 3 Parte 2
-// Calcula puntos totales de un usuario en una polla.
+// Scoring extendido — Calcula puntos totales de un usuario en una polla.
+//
+// Reglas (idénticas en grupos y eliminatorias):
+//   - 3 pts marcador exacto
+//   - 1 pt acertar ganador (o empate)
+//   - 0 pts fallo
+//
+// Eliminatorias: el marcador se evalúa contra los 90 minutos del partido
+// (sin alargues ni penales). NO se requiere haber acertado los equipos
+// del cruce - solo importa el marcador.
+//
+//   - 5 pts si aciertas el campeón
 // ─────────────────────────────────────────────────────────────────
 import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { KNOCKOUT_MATCHES } from '../data/knockoutTemplate.js';
 import { calcMatchPoints, POINTS_CHAMPION, isPredictionComplete } from './scoring.js';
 
-/**
- * Calcula los puntos de un usuario en una polla a partir de:
- *   - sus pronósticos (groupMatches, knockoutMatches, champion)
- *   - los resultados oficiales (groupResults, knockoutResults, officialChampion)
- *
- * Reglas:
- *   - Grupos: 3 exacto / 1 ganador / 0
- *   - Eliminatorias: SOLO puntúa si el usuario acertó AMBOS equipos del cruce.
- *     Si acertó los equipos: 3 exacto / 1 ganador (sobre marcador de 90 min).
- *     Si no acertó alguno de los equipos, ese partido vale 0.
- *   - Campeón: 5 puntos si acierta.
- */
 export function calcTotalStats({
   predictions,
   groupResults = {},
@@ -56,23 +54,21 @@ export function calcTotalStats({
   }
 
   // ── ELIMINATORIAS ──
+  // Misma lógica que grupos: solo importa el marcador (90 min).
+  // No se exige haber acertado qué equipos jugaron.
   for (const m of KNOCKOUT_MATCHES) {
     const p = koPreds[m.id];
     if (p && p.scoreHome != null && p.scoreAway != null) koComplete += 1;
     const r = knockoutResults[m.id];
-    if (r && p) {
-      // Para puntuar eliminatorias se requiere que el usuario haya acertado los DOS equipos
-      const teamsMatch = p.home === r.home && p.away === r.away;
-      if (teamsMatch) {
-        scoredMatches += 1;
-        const pPred = { home: p.scoreHome, away: p.scoreAway };
-        const rRes = { home: r.scoreHome, away: r.scoreAway };
-        const score = calcMatchPoints(pPred, rRes);
-        pts += score;
-        koPts += score;
-        if (score === 3) exact += 1;
-        if (score === 1) winner += 1;
-      }
+    if (r && p && p.scoreHome != null && p.scoreAway != null) {
+      scoredMatches += 1;
+      const pPred = { home: p.scoreHome, away: p.scoreAway };
+      const rRes = { home: r.scoreHome, away: r.scoreAway };
+      const score = calcMatchPoints(pPred, rRes);
+      pts += score;
+      koPts += score;
+      if (score === 3) exact += 1;
+      if (score === 1) winner += 1;
     }
   }
 

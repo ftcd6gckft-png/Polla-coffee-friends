@@ -3,18 +3,20 @@ import { teamLabel } from '../data/teams.js';
 import { isMatchLocked, formatMatchDateTime, formatTimeUntilLock } from '../lib/time.js';
 import { calcMatchPoints, pointsLabel, isPredictionComplete } from '../lib/scoring.js';
 import { saveGroupPrediction } from '../lib/predictions.js';
+import PublicPredictionsList from './PublicPredictionsList.jsx';
 
 /**
  * Tarjeta de pronóstico para un partido de fase de grupos.
  *
  * Props:
- *   match     → objeto del fixture (id, group, date, time, home, away, city, venue)
- *   prediction → { home, away } o null si no hay
- *   result    → { home, away } o null si no hay resultado oficial
- *   now       → timestamp actual (de useNow para reactividad del lock)
- *   pollId    → id de la polla
- *   userId    → uid del usuario
- *   onSaved   → callback (opcional) para mostrar toast u otra acción
+ *   match              → objeto del fixture
+ *   prediction         → { home, away } o null
+ *   result             → { home, away } resultado oficial o null
+ *   now                → timestamp actual (de useNow)
+ *   pollId, userId
+ *   onSaved
+ *   allPredictions     → predicciones de TODOS los miembros (para mostrar lista pública)
+ *   stats              → para mapear uid → nombre
  */
 export default function MatchPredictionCard({
   match,
@@ -24,23 +26,23 @@ export default function MatchPredictionCard({
   pollId,
   userId,
   onSaved,
+  allPredictions = [],
+  stats = [],
 }) {
   const locked = isMatchLocked(match, now);
   const hasResult = !!result;
+  const [showPublic, setShowPublic] = useState(false);
 
-  // Estado local de los inputs para edición fluida sin re-render del padre
   const [home, setHome] = useState(prediction?.home?.toString() ?? '');
   const [away, setAway] = useState(prediction?.away?.toString() ?? '');
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
-  // Si la predicción cambia desde fuera (ej. otro dispositivo del mismo usuario), sincronizar
   useEffect(() => {
     setHome(prediction?.home?.toString() ?? '');
     setAway(prediction?.away?.toString() ?? '');
   }, [prediction?.home, prediction?.away]);
 
-  // Debounced save: guarda 500ms después de la última tecla
   const saveTimer = useRef(null);
   useEffect(() => {
     if (locked) return;
@@ -49,7 +51,6 @@ export default function MatchPredictionCard({
     const ph = parseInt(home, 10);
     const pa = parseInt(away, 10);
     if (Number.isNaN(ph) || Number.isNaN(pa) || ph < 0 || pa < 0) return;
-    // No guardar si no hay cambios respecto a lo que ya está
     if (prediction && prediction.home === ph && prediction.away === pa) return;
 
     saveTimer.current = setTimeout(async () => {
@@ -71,7 +72,6 @@ export default function MatchPredictionCard({
     };
   }, [home, away, locked, match.id, pollId, userId]);
 
-  // Clamps: solo dígitos, máximo 2 cifras, entre 0 y 20
   const handleNumeric = (setter) => (e) => {
     const v = e.target.value.replace(/[^0-9]/g, '');
     if (v === '') return setter('');
@@ -84,7 +84,6 @@ export default function MatchPredictionCard({
     ? calcMatchPoints({ home, away }, result)
     : null;
 
-  // Estado visual del partido
   let statusLabel;
   let statusClass = 'm-status';
   if (hasResult) {
@@ -97,6 +96,12 @@ export default function MatchPredictionCard({
     statusLabel = `Cierra en ${formatTimeUntilLock(match, now)}`;
     statusClass += ' m-status-open';
   }
+
+  // Cuántos miembros pronosticaron este partido
+  const predCount = allPredictions.filter((p) => {
+    const pm = p.groupMatches?.[match.id];
+    return pm && pm.home != null && pm.away != null;
+  }).length;
 
   return (
     <div className={`pred-card ${locked ? 'is-locked' : ''} ${hasResult ? 'has-result' : ''}`}>
@@ -154,6 +159,28 @@ export default function MatchPredictionCard({
           <span className="pred-venue">{match.city}</span>
         )}
       </div>
+
+      {/* Botón para ver pronósticos de todos - solo cuando el partido está bloqueado */}
+      {locked && predCount > 0 && (
+        <div className="pred-card-public">
+          <button
+            className="pub-preds-toggle"
+            onClick={() => setShowPublic((s) => !s)}
+            aria-expanded={showPublic}
+          >
+            {showPublic ? '▴ Ocultar pronósticos' : `▾ Ver pronósticos de la polla (${predCount})`}
+          </button>
+          <PublicPredictionsList
+            allPredictions={allPredictions}
+            stats={stats}
+            match={match}
+            result={result}
+            phase="group"
+            currentUid={userId}
+            show={showPublic}
+          />
+        </div>
+      )}
     </div>
   );
 }

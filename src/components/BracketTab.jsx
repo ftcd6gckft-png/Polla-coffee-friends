@@ -7,31 +7,28 @@ import {
 } from '../data/knockoutTemplate.js';
 import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { TEAMS, teamLabel } from '../data/teams.js';
-import { subscribeToPredictions } from '../lib/predictions.js';
+import {
+  subscribeToPredictions,
+  subscribeToAllPoolPredictions,
+} from '../lib/predictions.js';
 import {
   saveKnockoutPrediction,
   subscribeToKnockoutResults,
   subscribeToKnockoutBracket,
+  subscribeToPoolStats,
 } from '../lib/predictionsExtended.js';
 import { isMatchLocked, formatMatchDateTime, formatTimeUntilLock } from '../lib/time.js';
 import { calcMatchPoints, pointsLabel } from '../lib/scoring.js';
 import { useNow } from '../hooks/useNow.js';
+import PublicPredictionsList from './PublicPredictionsList.jsx';
 
-/**
- * Pestaña: bracket de eliminatorias.
- *
- * Flujo:
- *  - Antes de que termine la fase de grupos: muestra mensaje "esperando clasificados"
- *  - Cuando el super-admin configura el bracket de una fase, los partidos de esa fase
- *    aparecen con los equipos reales y el usuario puede pronosticar marcador (90 min)
- *  - Cada partido se bloquea individualmente T-15min antes del kickoff
- *  - Cuando hay resultado oficial, se muestran los puntos (solo importa el marcador)
- */
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState(null);
   const [results, setResults] = useState({});
   const [bracket, setBracket] = useState({});
+  const [allPredictions, setAllPredictions] = useState([]);
+  const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const now = useNow(60 * 1000);
 
@@ -53,8 +50,18 @@ export default function BracketTab({ pollId }) {
     };
   }, []);
 
-  // ¿Terminó la fase de grupos? = todos los 72 partidos tienen resultado oficial
-  // (el lock T-15 del último partido de grupos: G72, Jun 27 21:00 COL)
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToAllPoolPredictions(pollId, setAllPredictions);
+    return unsub;
+  }, [pollId]);
+
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToPoolStats(pollId, setStats);
+    return unsub;
+  }, [pollId]);
+
   const lastGroupMatch = GROUP_MATCHES[GROUP_MATCHES.length - 1];
   const groupsFinished = isMatchLocked(lastGroupMatch, now);
 
@@ -96,11 +103,11 @@ export default function BracketTab({ pollId }) {
   return (
     <div className="bracket-tab">
       <div className="bracket-tip">
-        <strong>📌 Cómo funciona:</strong> Los cruces aparecen aquí cuando el
-        super-admin los configura. Pronostica el marcador del tiempo regular
-        (90 minutos) — los penales no cuentan para los puntos pero sí definen
-        quién pasa al siguiente cruce. Las reglas son las mismas que en fase de
-        grupos: 3 pts marcador exacto, 1 pt acertar ganador.
+        <strong>📌 Cómo funciona:</strong> Pronostica el marcador del tiempo regular
+        (90 minutos). Los penales no cuentan para los puntos pero sí definen quién pasa
+        al siguiente cruce. Las reglas son las mismas que en fase de grupos: 3 pts
+        marcador exacto, 1 pt acertar ganador. Cuando arranca cada partido, podrás ver
+        los pronósticos de toda la polla.
       </div>
 
       {PHASES_ORDER.map((phase) => {
@@ -140,6 +147,8 @@ export default function BracketTab({ pollId }) {
                     now={now}
                     pollId={pollId}
                     userId={user.uid}
+                    allPredictions={allPredictions}
+                    stats={stats}
                   />
                 );
               })}
@@ -184,16 +193,13 @@ function PendingMatchCard({ match }) {
   );
 }
 
-function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
+function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, allPredictions, stats }) {
   const locked = isMatchLocked(match, now);
   const hasResult = !!result;
+  const [showPublic, setShowPublic] = useState(false);
 
-  const [scoreHome, setScoreHome] = useState(
-    prediction?.scoreHome?.toString() ?? ''
-  );
-  const [scoreAway, setScoreAway] = useState(
-    prediction?.scoreAway?.toString() ?? ''
-  );
+  const [scoreHome, setScoreHome] = useState(prediction?.scoreHome?.toString() ?? '');
+  const [scoreAway, setScoreAway] = useState(prediction?.scoreAway?.toString() ?? '');
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState(false);
 
@@ -202,7 +208,6 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     setScoreAway(prediction?.scoreAway?.toString() ?? '');
   }, [prediction?.scoreHome, prediction?.scoreAway]);
 
-  // Autosave
   useEffect(() => {
     if (locked) return;
     const ph = parseInt(scoreHome, 10);
@@ -245,7 +250,7 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     setter(String(n));
   };
 
-  // Puntos: solo importa el marcador del partido (no los equipos)
+  // Puntos: solo importa el marcador (no los equipos)
   let pts = null;
   if (hasResult) {
     const ph = parseInt(scoreHome, 10);
@@ -272,6 +277,11 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     statusLabel = `Cierra en ${formatTimeUntilLock(match, now)}`;
     statusClass += ' m-status-open';
   }
+
+  const predCount = (allPredictions || []).filter((p) => {
+    const ko = p.knockoutMatches?.[match.id];
+    return ko && ko.scoreHome != null && ko.scoreAway != null;
+  }).length;
 
   return (
     <div className={`ko-card ${locked ? 'is-locked' : ''} ${hasResult ? 'has-result' : ''}`}>
@@ -317,6 +327,27 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
         )}
         {match.city && <span className="ko-venue">{match.city}</span>}
       </div>
+
+      {locked && predCount > 0 && (
+        <div className="pred-card-public">
+          <button
+            className="pub-preds-toggle"
+            onClick={() => setShowPublic((s) => !s)}
+            aria-expanded={showPublic}
+          >
+            {showPublic ? '▴ Ocultar pronósticos' : `▾ Ver pronósticos de la polla (${predCount})`}
+          </button>
+          <PublicPredictionsList
+            allPredictions={allPredictions}
+            stats={stats}
+            match={match}
+            result={result}
+            phase="knockout"
+            currentUid={userId}
+            show={showPublic}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,3 @@
-// Reglas de seguridad de Firestore — Versión con pronósticos públicos entre miembros
-//
-// Cambios:
-//   - /pools/{pollId}/predictions/{userId}: ahora todos los miembros de la polla
-//     pueden LEER las predicciones de cualquier otro miembro. Cada usuario sigue
-//     pudiendo escribir SOLO las suyas.
-//   - Nota: el "ocultar antes del lock" se hace en el cliente, no en las reglas
-//     (las reglas no pueden evaluar fecha/hora del partido).
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -19,6 +10,11 @@ service cloud.firestore {
     function isPoolMember(pollId) {
       return request.auth != null
         && request.auth.uid in get(/databases/$(database)/documents/pools/$(pollId)).data.members;
+    }
+
+    function isPoolAdmin(pollId) {
+      return request.auth != null
+        && request.auth.uid == get(/databases/$(database)/documents/pools/$(pollId)).data.adminUid;
     }
 
     // ─── USERS ───────────────────────────────────────────────────
@@ -37,16 +33,22 @@ service cloud.firestore {
       allow delete: if request.auth != null
                     && resource.data.adminUid == request.auth.uid;
 
-      // PREDICTIONS: cada usuario escribe SOLO las suyas, pero todos los miembros pueden LEER las de otros.
+      // PREDICTIONS: escribes solo las tuyas, pero todos los miembros leen
       match /predictions/{userId} {
         allow read: if isPoolMember(pollId);
         allow write: if request.auth != null && request.auth.uid == userId;
       }
 
-      // STATS: cada usuario publica las suyas; cualquier miembro de la polla puede leerlas
+      // STATS: cada usuario publica las suyas; cualquier miembro las lee
       match /stats/{userId} {
         allow read: if isPoolMember(pollId);
         allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // PAYMENTS: solo el admin de la polla escribe; cualquier miembro lee
+      match /payments/{userId} {
+        allow read: if isPoolMember(pollId);
+        allow write: if isPoolAdmin(pollId);
       }
     }
 

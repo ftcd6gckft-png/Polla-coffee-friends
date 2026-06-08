@@ -1,0 +1,245 @@
+/* ───────────────────────────────────────────────────────────
+   Pestaña REGLAS
+   ─────────────────────────────────────────────────────────── */
+
+.rules-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.rules-intro {
+  text-align: center;
+  padding: 12px 0 20px;
+}
+.rules-emoji {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+.rules-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 5vw, 36px);
+  letter-spacing: 2px;
+  color: var(--lavender);
+  margin-bottom: 6px;
+}
+.rules-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rules-card {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.rules-card-highlight {
+  border-color: rgba(127, 226, 216, 0.4);
+  background: linear-gradient(180deg, rgba(127, 226, 216, 0.04), var(--card) 60%);
+}
+
+.rules-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rules-card-icon {
+  font-size: 20px;
+}
+.rules-card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+.rules-list {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rules-list li {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.rules-list li strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.rules-list-numbered {
+  list-style: decimal;
+}
+
+.rules-paragraph {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.rules-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-left: 3px solid var(--lavender);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.rules-note strong { color: var(--lavender); }
+
+.rules-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 14px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.rules-price-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 1px;
+  color: var(--turquoise);
+  line-height: 1;
+}
+.rules-price-currency {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rules-pay-info {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.rules-footer {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 16px 0 6px;
+}
+.rules-footer strong { color: var(--lavender); }
+
+
+/* ───────────────────────────────────────────────────────────
+   Panel admin de pagos (dentro del ranking)
+   ─────────────────────────────────────────────────────────── */
+
+.rank-admin-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(192, 159, 219, 0.08);
+  border: 1px solid rgba(192, 159, 219, 0.3);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.rank-admin-banner strong { color: var(--lavender); }
+.rank-admin-banner-icon {
+  font-size: 22px;
+}
+
+.rank-admin-counters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rank-admin-paid {
+  color: var(--turquoise);
+}
+.rank-admin-unpaid {
+  color: var(--muted-2);
+}
+
+/* Indicadores en filas del ranking */
+.ranking-row.is-unpaid {
+  background: rgba(134, 117, 168, 0.04);
+}
+.ranking-row.is-unpaid .rank-name,
+.ranking-row.is-unpaid .rank-pts {
+  opacity: 0.7;
+}
+
+.rank-unpaid-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted-2);
+  background: rgba(134, 117, 168, 0.12);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 100px;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+}
+
+.rank-player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rank-pay-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.16s;
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+.rank-pay-toggle:hover {
+  border-color: var(--turquoise);
+  color: var(--turquoise);
+}
+.rank-pay-toggle.is-paid {
+  background: rgba(127, 226, 216, 0.12);
+  border-color: var(--turquoise);
+  color: var(--turquoise);
+}
+.rank-pay-toggle.is-paid:hover {
+  background: rgba(127, 226, 216, 0.2);
+}
+
+@media (max-width: 600px) {
+  .rank-admin-banner {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: left;
+  }
+  .rank-admin-banner-icon { display: none; }
+  .rank-admin-counters {
+    flex-direction: row;
+    gap: 12px;
+  }
+  .rules-card { padding: 16px 18px; }
+  .rules-price-amount { font-size: 30px; }
+}

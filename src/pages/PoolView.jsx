@@ -7,6 +7,7 @@ import GroupPredictionsTab from '../components/GroupPredictionsTab.jsx';
 import BracketTab from '../components/BracketTab.jsx';
 import ChampionTab from '../components/ChampionTab.jsx';
 import RankingTab from '../components/RankingTab.jsx';
+import RulesTab from '../components/RulesTab.jsx';
 import RankingUpdater from '../components/RankingUpdater.jsx';
 
 const TABS = [
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'bracket',  label: 'Eliminatorias',  icon: '🏆' },
   { id: 'campeon',  label: 'Campeón',        icon: '👑' },
   { id: 'ranking',  label: 'Ranking',        icon: '📊' },
+  { id: 'reglas',   label: 'Reglas',         icon: '📜' },
 ];
 
 export default function PoolView() {
@@ -93,7 +95,6 @@ export default function PoolView() {
 
   return (
     <div className="container cnj-page">
-      {/* Componente invisible: mantiene sincronizadas las stats del usuario para el ranking */}
       <RankingUpdater pollId={pool.id} />
 
       <div className="cnj-pool-header">
@@ -136,6 +137,7 @@ export default function PoolView() {
         {activeTab === 'bracket'  && <BracketTab pollId={pool.id} />}
         {activeTab === 'campeon'  && <ChampionTab pollId={pool.id} />}
         {activeTab === 'ranking'  && <RankingTab pollId={pool.id} />}
+        {activeTab === 'reglas'   && <RulesTab />}
       </div>
     </div>
   );

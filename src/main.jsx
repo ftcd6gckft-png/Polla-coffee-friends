@@ -8,6 +8,7 @@ import './styles/entrega-3.css';
 import './styles/entrega-3b.css';
 import './styles/public-preds.css';
 import './styles/by-date.css';
+import './styles/rules-and-payments.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

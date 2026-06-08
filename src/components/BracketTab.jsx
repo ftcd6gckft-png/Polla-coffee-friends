@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   KNOCKOUT_MATCHES,
@@ -25,7 +25,7 @@ import { useNow } from '../hooks/useNow.js';
  *  - Cuando el super-admin configura el bracket de una fase, los partidos de esa fase
  *    aparecen con los equipos reales y el usuario puede pronosticar marcador (90 min)
  *  - Cada partido se bloquea individualmente T-15min antes del kickoff
- *  - Cuando hay resultado oficial, se muestran los puntos
+ *  - Cuando hay resultado oficial, se muestran los puntos (solo importa el marcador)
  */
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
@@ -69,7 +69,6 @@ export default function BracketTab({ pollId }) {
     );
   }
 
-  // ¿Hay al menos un partido con bracket configurado?
   const anyBracketConfigured = Object.keys(bracket).length > 0;
 
   if (!groupsFinished && !anyBracketConfigured) {
@@ -100,7 +99,8 @@ export default function BracketTab({ pollId }) {
         <strong>📌 Cómo funciona:</strong> Los cruces aparecen aquí cuando el
         super-admin los configura. Pronostica el marcador del tiempo regular
         (90 minutos) — los penales no cuentan para los puntos pero sí definen
-        quién pasa al siguiente cruce.
+        quién pasa al siguiente cruce. Las reglas son las mismas que en fase de
+        grupos: 3 pts marcador exacto, 1 pt acertar ganador.
       </div>
 
       {PHASES_ORDER.map((phase) => {
@@ -245,9 +245,9 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     setter(String(n));
   };
 
-  // Puntos: solo si los equipos coinciden y hay resultado
+  // Puntos: solo importa el marcador del partido (no los equipos)
   let pts = null;
-  if (hasResult && result.home === match.home && result.away === match.away) {
+  if (hasResult) {
     const ph = parseInt(scoreHome, 10);
     const pa = parseInt(scoreAway, 10);
     if (!Number.isNaN(ph) && !Number.isNaN(pa)) {

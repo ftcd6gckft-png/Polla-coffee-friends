@@ -1,16 +1,5 @@
-// ─────────────────────────────────────────────────────────────────
-// Estado de pago de cada miembro de una polla.
-//
-// Estructura:
-//   /pools/{pollId}/payments/{userId}
-//     paid: boolean
-//     paidAt: timestamp (cuando se marcó como pagado)
-//     markedByUid: string (uid del admin que lo marcó)
-//
-// Reglas: solo el admin de la polla puede ESCRIBIR. Todos los miembros LEEN.
-// ─────────────────────────────────────────────────────────────────
 import {
-  doc, setDoc, collection, onSnapshot, serverTimestamp
+  doc, setDoc, updateDoc, getDoc, collection, getDocs, onSnapshot, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
 
@@ -23,15 +12,24 @@ export function subscribeToPoolPayments(pollId, callback) {
   });
 }
 
-/**
- * Marca o desmarca el pago de un usuario.
- * Solo el admin de la polla puede hacerlo (validado en reglas).
- */
 export async function setPaymentStatus(pollId, userId, paid, markedByUid) {
-  const ref = doc(db, 'pools', pollId, 'payments', userId);
-  await setDoc(ref, {
+  const payRef = doc(db, 'pools', pollId, 'payments', userId);
+  await setDoc(payRef, {
     paid,
     paidAt: paid ? serverTimestamp() : null,
     markedByUid,
   }, { merge: true });
+
+  try {
+    const colRef = collection(db, 'pools', pollId, 'payments');
+    const snap = await getDocs(colRef);
+    let total = 0;
+    snap.docs.forEach((d) => {
+      if (d.data()?.paid === true) total += 1;
+    });
+    const poolRef = doc(db, 'pools', pollId);
+    await updateDoc(poolRef, { paidCount: total });
+  } catch (e) {
+    console.warn('[payments] no se pudo actualizar paidCount', e?.code);
+  }
 }

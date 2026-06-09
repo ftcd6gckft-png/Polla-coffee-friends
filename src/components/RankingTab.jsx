@@ -15,9 +15,8 @@ import { useToast } from './Toast.jsx';
  * Ranking de los miembros de la polla.
  *
  * - El estado de pago y todos sus indicadores SOLO se muestran al admin.
- * - Los miembros normales ven el ranking limpio, ordenado solo por puntos.
- * - El admin además tiene botones para marcar/desmarcar pagos y un banner
- *   con explicación + contadores.
+ * - El admin puede marcar a CUALQUIER miembro como pagado, incluyéndose a sí mismo.
+ * - Los miembros normales ven el ranking limpio, sin pistas de pagos.
  */
 export default function RankingTab({ pollId }) {
   const { user } = useAuth();
@@ -46,8 +45,7 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId]);
 
-  // SOLO el admin se suscribe a payments. Los miembros normales no lo necesitan
-  // y así evitamos exponer la info en su cliente.
+  // Solo el admin se suscribe a payments.
   const isAdmin = pool && user && pool.adminUid === user.uid;
   useEffect(() => {
     if (!isAdmin) {
@@ -78,9 +76,7 @@ export default function RankingTab({ pollId }) {
     );
   }
 
-  // Ordenamiento:
-  //  - Si eres admin: primero pagados, luego no pagados (para gestión visual).
-  //  - Si NO eres admin: solo por puntos, sin diferenciar pagos.
+  // Orden: si admin, pagados arriba; si no, solo por puntos.
   const sorted = [...stats].sort((a, b) => {
     if (isAdmin) {
       const paidA = payments[a.uid]?.paid === true;
@@ -127,8 +123,8 @@ export default function RankingTab({ pollId }) {
           <span className="rank-admin-banner-icon">⚙️</span>
           <div>
             <strong>Eres admin de esta polla.</strong> Solo tú ves esta sección. Puedes marcar
-            quién pagó tocando el botón al lado de cada miembro. La información de pagos NO es
-            visible para el resto de los jugadores.
+            quién pagó tocando el botón al lado de cada miembro (incluido tú mismo). La
+            información de pagos NO es visible para el resto de los jugadores.
           </div>
           <div className="rank-admin-counters">
             <span className="rank-admin-paid">{paidCount} pagados</span>
@@ -151,8 +147,6 @@ export default function RankingTab({ pollId }) {
           const rank = idx + 1;
           const team = row.champion ? TEAMS.find((t) => t.code === row.champion) : null;
           const paid = payments[row.uid]?.paid === true;
-          // Las clases is-paid / is-unpaid SOLO se aplican si eres admin.
-          // Así los morosos no se ven distintos para los demás jugadores.
           const paymentClass = isAdmin ? (paid ? 'is-paid' : 'is-unpaid') : '';
           return (
             <div
@@ -168,7 +162,6 @@ export default function RankingTab({ pollId }) {
                   <div className="rank-name">
                     {row.displayName || row.uid.slice(0, 6)}
                     {isMe && <span className="rank-you">TÚ</span>}
-                    {/* El badge "pendiente" SOLO se muestra al admin */}
                     {isAdmin && !paid && (
                       <span className="rank-unpaid-badge" title="Pago pendiente">💵 pendiente</span>
                     )}
@@ -179,8 +172,8 @@ export default function RankingTab({ pollId }) {
                       {officialChamp && officialChamp === team.code && ' +10'}
                     </div>
                   )}
-                  {/* Botón de toggle SOLO para admin (y no para sí mismo) */}
-                  {isAdmin && !isMe && (
+                  {/* Botón siempre disponible para el admin, incluyéndose a sí mismo */}
+                  {isAdmin && (
                     <button
                       className={`rank-pay-toggle ${paid ? 'is-paid' : ''}`}
                       onClick={() => togglePaid(row.uid, paid)}

@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { getPool } from '../lib/pools.js';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import {
-  subscribeToPoolStats,
   subscribeToOfficialChampion,
 } from '../lib/predictionsExtended.js';
-import { subscribeToGroupResults } from '../lib/predictions.js';
+import {
+  subscribeToGroupResults,
+  subscribeToAllPoolPredictions,
+} from '../lib/predictions.js';
 import { subscribeToKnockoutResults } from '../lib/predictionsExtended.js';
 import { subscribeToPoolPayments, setPaymentStatus } from '../lib/payments.js';
+import { calcTotalStats } from '../lib/scoringExtended.js';
 import { TEAMS } from '../data/teams.js';
 import { useToast } from './Toast.jsx';
 
@@ -23,15 +25,33 @@ function formatCOP(amount) {
   }).format(amount);
 }
 
+/**
+ * Ranking en tiempo real.
+ *
+ * A diferencia de la versión anterior (que leía /stats publicado por cada
+ * usuario al abrir la app), esta versión LEE TODAS LAS PREDICCIONES de los
+ * miembros de la polla directamente y calcula los puntos contra los
+ * resultados oficiales en el cliente del que está viendo el ranking.
+ *
+ * Esto asegura que el ranking esté SIEMPRE actualizado, sin importar
+ * quién haya abierto la app o no.
+ *
+ * Es posible porque las reglas de Firestore ya permiten que cualquier
+ * miembro de la polla lea las predicciones de los demás miembros (se hizo
+ * para la feature de "pronósticos públicos").
+ */
 export default function RankingTab({ pollId }) {
   const { user } = useAuth();
-  const [stats, setStats] = useState([]);
   const [pool, setPool] = useState(null);
-  const [payments, setPayments] = useState({});
+  const [allPredictions, setAllPredictions] = useState([]);
+  const [groupResults, setGroupResults] = useState({});
+  const [knockoutResults, setKnockoutResults] = useState({});
   const [officialChamp, setOfficialChamp] = useState(null);
+  const [payments, setPayments] = useState({});
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
+  // 1) Doc de la polla (para leer paidCount y adminUid)
   useEffect(() => {
     if (!pollId) return;
     const unsub = onSnapshot(doc(db, 'pools', pollId), (snap) => {
@@ -40,14 +60,35 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId]);
 
+  // 2) Todas las predicciones de los miembros de la polla
   useEffect(() => {
-    const unsub = subscribeToPoolStats(pollId, (rows) => {
-      setStats(rows);
+    if (!pollId) return;
+    const unsub = subscribeToAllPoolPredictions(pollId, (rows) => {
+      setAllPredictions(rows);
       setLoading(false);
     });
     return unsub;
   }, [pollId]);
 
+  // 3) Resultados oficiales de grupos
+  useEffect(() => {
+    const unsub = subscribeToGroupResults(setGroupResults);
+    return unsub;
+  }, []);
+
+  // 4) Resultados oficiales de eliminatorias
+  useEffect(() => {
+    const unsub = subscribeToKnockoutResults(setKnockoutResults);
+    return unsub;
+  }, []);
+
+  // 5) Campeón oficial
+  useEffect(() => {
+    const unsub = subscribeToOfficialChampion(setOfficialChamp);
+    return unsub;
+  }, []);
+
+  // 6) Solo el admin se suscribe a payments individuales (privado)
   const isAdmin = pool && user && pool.adminUid === user.uid;
   useEffect(() => {
     if (!isAdmin) {
@@ -58,16 +99,39 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId, isAdmin]);
 
-  useEffect(() => {
-    const unsub = subscribeToOfficialChampion(setOfficialChamp);
-    return unsub;
-  }, []);
+  // ── Calcular ranking en vivo ──
+  // Para cada miembro, calculamos sus stats a partir de sus predicciones reales
+  // y los resultados oficiales actuales. NO leemos de /stats — calculamos al vuelo.
+  const rankingRows = useMemo(() => {
+    return allPredictions.map((pred) => {
+      const stats = calcTotalStats({
+        predictions: pred,
+        groupResults,
+        knockoutResults,
+        officialChampion: officialChamp,
+      });
+      return {
+        uid: pred.uid,
+        displayName: pred.displayName || null,
+        pts: stats.pts,
+        exact: stats.exact,
+        winner: stats.winner,
+        champion: pred.champion || null,
+        championCorrect: !!stats.championCorrect,
+      };
+    });
+  }, [allPredictions, groupResults, knockoutResults, officialChamp]);
 
-  useEffect(() => {
-    const a = subscribeToGroupResults(() => {});
-    const b = subscribeToKnockoutResults(() => {});
-    return () => { a(); b(); };
-  }, []);
+  // El usuario actual también está en allPredictions, pero su displayName puede
+  // venir vacío si nunca pronosticó. Aseguramos su nombre desde el contexto.
+  const enriched = useMemo(() => {
+    return rankingRows.map((r) => {
+      if (r.uid === user?.uid && (!r.displayName || r.displayName === r.uid)) {
+        return { ...r, displayName: user?.displayName || user?.email || r.displayName };
+      }
+      return r;
+    });
+  }, [rankingRows, user?.uid, user?.displayName, user?.email]);
 
   if (loading) {
     return (
@@ -81,10 +145,11 @@ export default function RankingTab({ pollId }) {
   const paidCount = pool?.paidCount || 0;
   const bolsa = paidCount * VALOR_INSCRIPCION;
 
-  const adminPaid = stats.filter((s) => payments[s.uid]?.paid).length;
-  const adminUnpaid = stats.length - adminPaid;
+  const adminPaid = enriched.filter((s) => payments[s.uid]?.paid).length;
+  const adminUnpaid = enriched.length - adminPaid;
 
-  const sorted = [...stats].sort((a, b) => {
+  // Orden: admin ve pagados arriba; los demás ven solo por puntos
+  const sorted = [...enriched].sort((a, b) => {
     if (isAdmin) {
       const paidA = payments[a.uid]?.paid === true;
       const paidB = payments[b.uid]?.paid === true;

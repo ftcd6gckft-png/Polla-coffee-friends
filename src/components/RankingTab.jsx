@@ -27,18 +27,14 @@ function formatCOP(amount) {
 }
 
 /**
- * Ranking en tiempo real (versión 2).
+ * Ranking en tiempo real (versión 3 - arreglada).
  *
  * Estrategia:
- *  - Lee TODOS los documentos de /stats/ → obtenemos uids y displayNames de todos los miembros.
- *  - Lee TODAS las predicciones → para calcular puntos en vivo.
- *  - Para CADA stat publicado, busca su prediction (si existe) y calcula los puntos al vuelo.
- *  - Si no hay prediction para un miembro, queda con 0 puntos.
- *
- * Por qué esta estrategia:
- *  - Las stats tienen los displayNames (que se publican cuando el usuario entra la primera vez).
- *  - Las predictions tienen los pronósticos reales.
- *  - Combinando ambas, conseguimos: nombres correctos + cálculo siempre fresco.
+ *  - La lista de miembros viene de la UNIÓN de stats + predictions
+ *    (un miembro aparece si tiene cualquiera de los dos).
+ *  - El nombre se busca en este orden: stats.displayName → predictions.displayName → UID corto.
+ *  - Los puntos se calculan SIEMPRE en vivo desde la predicción real
+ *    (no se lee de stats.pts porque podría estar desactualizado).
  */
 export default function RankingTab({ pollId }) {
   const { user } = useAuth();
@@ -61,7 +57,6 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId]);
 
-  // Stats (para nombres)
   useEffect(() => {
     const unsub = subscribeToPoolStats(pollId, (rows) => {
       setStats(rows);
@@ -70,7 +65,6 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId]);
 
-  // Predictions (para cálculo en vivo)
   useEffect(() => {
     if (!pollId) return;
     const unsub = subscribeToAllPoolPredictions(pollId, (rows) => {
@@ -105,40 +99,65 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId, isAdmin]);
 
-  // Index de predictions por uid (para lookup rápido)
+  // Índices por uid para lookup rápido
+  const statsByUid = useMemo(() => {
+    const m = {};
+    stats.forEach((s) => { m[s.uid] = s; });
+    return m;
+  }, [stats]);
+
   const predsByUid = useMemo(() => {
     const m = {};
     allPredictions.forEach((p) => { m[p.uid] = p; });
     return m;
   }, [allPredictions]);
 
-  // Ranking final: para cada stat (que tiene nombre), calculamos puntos al vuelo
-  // a partir de su predicción real (si existe).
+  // Set unión de todos los uids (presentes en stats o predictions)
+  const allUids = useMemo(() => {
+    const set = new Set();
+    stats.forEach((s) => set.add(s.uid));
+    allPredictions.forEach((p) => set.add(p.uid));
+    return Array.from(set);
+  }, [stats, allPredictions]);
+
+  // Construir el ranking en vivo
   const rankingRows = useMemo(() => {
-    return stats.map((s) => {
-      const pred = predsByUid[s.uid];
-      let computedStats = {
-        pts: 0, exact: 0, winner: 0, champion: null, championCorrect: false,
-      };
-      if (pred) {
-        computedStats = calcTotalStats({
-          predictions: pred,
+    return allUids.map((uid) => {
+      const s = statsByUid[uid] || {};
+      const p = predsByUid[uid] || null;
+
+      // Nombre: prefer stats (es el que se publicó explícitamente), luego predictions, luego UID
+      let displayName = s.displayName || p?.displayName;
+      if (!displayName && uid === user?.uid) {
+        // Fallback para el usuario actual: usar lo que conoce el contexto
+        displayName = user?.displayName || user?.email;
+      }
+      if (!displayName) {
+        displayName = uid ? uid.slice(0, 6) : '?';
+      }
+
+      // Puntos: SIEMPRE recalcular desde la predicción real
+      let computed = { pts: 0, exact: 0, winner: 0, championCorrect: false };
+      if (p) {
+        computed = calcTotalStats({
+          predictions: p,
           groupResults,
           knockoutResults,
           officialChampion: officialChamp,
         });
       }
+
       return {
-        uid: s.uid,
-        displayName: s.displayName || (s.uid ? s.uid.slice(0, 6) : '?'),
-        pts: computedStats.pts,
-        exact: computedStats.exact,
-        winner: computedStats.winner,
-        champion: pred?.champion || s.champion || null,
-        championCorrect: !!computedStats.championCorrect,
+        uid,
+        displayName,
+        pts: computed.pts,
+        exact: computed.exact,
+        winner: computed.winner,
+        champion: p?.champion || s.champion || null,
+        championCorrect: !!computed.championCorrect,
       };
     });
-  }, [stats, predsByUid, groupResults, knockoutResults, officialChamp]);
+  }, [allUids, statsByUid, predsByUid, groupResults, knockoutResults, officialChamp, user?.uid, user?.displayName, user?.email]);
 
   const loading = loadingStats || loadingPreds;
 

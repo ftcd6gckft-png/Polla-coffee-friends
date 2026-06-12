@@ -12,6 +12,7 @@ import {
 } from '../lib/predictions.js';
 import { subscribeToKnockoutResults } from '../lib/predictionsExtended.js';
 import { subscribeToPoolPayments, setPaymentStatus } from '../lib/payments.js';
+import { removeMemberFromPool } from '../lib/memberManagement.js';
 import { calcTotalStats } from '../lib/scoringExtended.js';
 import { TEAMS } from '../data/teams.js';
 import { useToast } from './Toast.jsx';
@@ -26,16 +27,6 @@ function formatCOP(amount) {
   }).format(amount);
 }
 
-/**
- * Ranking en tiempo real (versión 3 - arreglada).
- *
- * Estrategia:
- *  - La lista de miembros viene de la UNIÓN de stats + predictions
- *    (un miembro aparece si tiene cualquiera de los dos).
- *  - El nombre se busca en este orden: stats.displayName → predictions.displayName → UID corto.
- *  - Los puntos se calculan SIEMPRE en vivo desde la predicción real
- *    (no se lee de stats.pts porque podría estar desactualizado).
- */
 export default function RankingTab({ pollId }) {
   const { user } = useAuth();
   const [pool, setPool] = useState(null);
@@ -47,6 +38,7 @@ export default function RankingTab({ pollId }) {
   const [payments, setPayments] = useState({});
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingPreds, setLoadingPreds] = useState(true);
+  const [removingUid, setRemovingUid] = useState(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -99,7 +91,6 @@ export default function RankingTab({ pollId }) {
     return unsub;
   }, [pollId, isAdmin]);
 
-  // Índices por uid para lookup rápido
   const statsByUid = useMemo(() => {
     const m = {};
     stats.forEach((s) => { m[s.uid] = s; });
@@ -112,7 +103,6 @@ export default function RankingTab({ pollId }) {
     return m;
   }, [allPredictions]);
 
-  // Set unión de todos los uids (presentes en stats o predictions)
   const allUids = useMemo(() => {
     const set = new Set();
     stats.forEach((s) => set.add(s.uid));
@@ -120,23 +110,17 @@ export default function RankingTab({ pollId }) {
     return Array.from(set);
   }, [stats, allPredictions]);
 
-  // Construir el ranking en vivo
   const rankingRows = useMemo(() => {
     return allUids.map((uid) => {
       const s = statsByUid[uid] || {};
       const p = predsByUid[uid] || null;
-
-      // Nombre: prefer stats (es el que se publicó explícitamente), luego predictions, luego UID
       let displayName = s.displayName || p?.displayName;
       if (!displayName && uid === user?.uid) {
-        // Fallback para el usuario actual: usar lo que conoce el contexto
         displayName = user?.displayName || user?.email;
       }
       if (!displayName) {
         displayName = uid ? uid.slice(0, 6) : '?';
       }
-
-      // Puntos: SIEMPRE recalcular desde la predicción real
       let computed = { pts: 0, exact: 0, winner: 0, championCorrect: false };
       if (p) {
         computed = calcTotalStats({
@@ -146,7 +130,6 @@ export default function RankingTab({ pollId }) {
           officialChampion: officialChamp,
         });
       }
-
       return {
         uid,
         displayName,
@@ -155,6 +138,7 @@ export default function RankingTab({ pollId }) {
         winner: computed.winner,
         champion: p?.champion || s.champion || null,
         championCorrect: !!computed.championCorrect,
+        hasPredictions: !!p,
       };
     });
   }, [allUids, statsByUid, predsByUid, groupResults, knockoutResults, officialChamp, user?.uid, user?.displayName, user?.email]);
@@ -196,6 +180,24 @@ export default function RankingTab({ pollId }) {
       });
     } catch (e) {
       showToast(`Error: ${e?.code || e.message}`, { icon: '⚠️', type: 'error' });
+    }
+  };
+
+  const handleRemoveMember = async (uid, displayName) => {
+    const confirmMsg = `¿Sacar a "${displayName}" de la polla?\n\nEsto borrará sus pronósticos, stats y registro de pago en esta polla. Su cuenta seguirá existiendo y podrá volver a unirse con el código de invitación si quiere.\n\nEsta acción NO se puede deshacer.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setRemovingUid(uid);
+    try {
+      await removeMemberFromPool(pollId, uid);
+      showToast(`${displayName} fue sacado de la polla`, { icon: '🗑️' });
+    } catch (e) {
+      showToast(`Error: ${e.message || e.code || 'No se pudo sacar'}`, {
+        icon: '⚠️',
+        type: 'error',
+      });
+    } finally {
+      setRemovingUid(null);
     }
   };
 
@@ -250,10 +252,12 @@ export default function RankingTab({ pollId }) {
           const team = row.champion ? TEAMS.find((t) => t.code === row.champion) : null;
           const paid = payments[row.uid]?.paid === true;
           const paymentClass = isAdmin ? (paid ? 'is-paid' : 'is-unpaid') : '';
+          const isBeingRemoved = removingUid === row.uid;
           return (
             <div
               key={row.uid}
               className={`ranking-row rank-${rank} ${isMe ? 'is-me' : ''} ${paymentClass}`}
+              style={isBeingRemoved ? { opacity: 0.5, pointerEvents: 'none' } : {}}
             >
               <div className="rank-num">{rank}</div>
               <div className="rank-player">
@@ -275,13 +279,25 @@ export default function RankingTab({ pollId }) {
                     </div>
                   )}
                   {isAdmin && (
-                    <button
-                      className={`rank-pay-toggle ${paid ? 'is-paid' : ''}`}
-                      onClick={() => togglePaid(row.uid, paid)}
-                      title={paid ? 'Marcar como pendiente' : 'Marcar como pagado'}
-                    >
-                      {paid ? '✓ Pagado' : 'Marcar pagado'}
-                    </button>
+                    <div className="rank-admin-actions">
+                      <button
+                        className={`rank-pay-toggle ${paid ? 'is-paid' : ''}`}
+                        onClick={() => togglePaid(row.uid, paid)}
+                        title={paid ? 'Marcar como pendiente' : 'Marcar como pagado'}
+                      >
+                        {paid ? '✓ Pagado' : 'Marcar pagado'}
+                      </button>
+                      {!isMe && (
+                        <button
+                          className="rank-remove-btn"
+                          onClick={() => handleRemoveMember(row.uid, row.displayName)}
+                          disabled={isBeingRemoved}
+                          title="Sacar de la polla"
+                        >
+                          🗑 Sacar
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

@@ -10,6 +10,7 @@ import './styles/public-preds.css';
 import './styles/by-date.css';
 import './styles/rules-and-payments.css';
 import './styles/bolsa.css';
+import './styles/remove-member.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -18,4 +19,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
-import './styles/remove-member.css';

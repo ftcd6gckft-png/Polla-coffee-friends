@@ -1,5 +1,6 @@
 /* ───────────────────────────────────────────────────────────
    Vista "Por fecha" + sub-tabs internos
+   Con acordeón colapsable por día
    ─────────────────────────────────────────────────────────── */
 
 /* SUB-TABS (Por grupos / Por fecha) */
@@ -33,12 +34,14 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
-/* CONTROLES de la vista por fecha (filtro) */
+/* CONTROLES de la vista por fecha (filtro + bulk expand/collapse) */
 .by-date-controls {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 18px;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
 }
 .by-date-filter {
   background: var(--surface);
@@ -79,24 +82,93 @@
   color: var(--text);
 }
 
-/* AGRUPACIÓN POR DÍA */
-.by-date-view {
+.by-date-bulk {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
 }
-.by-date-day {
+.by-date-bulk-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: all 0.16s;
+}
+.by-date-bulk-btn:hover {
+  color: var(--lavender);
+  text-decoration-color: var(--lavender);
+}
+.by-date-bulk-sep {
+  color: var(--muted-2);
+}
+
+/* AGRUPACIÓN POR DÍA - acordeón */
+.by-date-view {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
+.by-date-day {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border 0.18s;
+}
+.by-date-day.is-expanded {
+  border-color: rgba(192, 159, 219, 0.3);
+}
+.by-date-day.is-collapsed:hover {
+  border-color: rgba(192, 159, 219, 0.25);
+}
+
+/* Header del día (botón clickeable) */
 .by-date-day-header {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 2px 10px;
+  align-items: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text);
+  transition: background 0.16s;
+  text-align: left;
+}
+.by-date-day-header:hover {
+  background: rgba(192, 159, 219, 0.04);
+}
+.by-date-day.is-expanded .by-date-day-header {
   border-bottom: 1px solid var(--border);
 }
+
+.by-date-day-header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.by-date-day-chevron {
+  color: var(--lavender);
+  font-size: 14px;
+  font-weight: 700;
+  width: 14px;
+  display: inline-block;
+  text-align: center;
+  transition: transform 0.16s;
+}
+
 .by-date-day-title {
   font-family: 'Outfit', sans-serif;
   font-size: 16px;
@@ -111,12 +183,14 @@
   letter-spacing: 1px;
   margin: 0 2px;
 }
+
 .by-date-day-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   font-size: 11px;
   color: var(--muted);
+  padding-left: 24px;
 }
 .by-date-day-meta .is-complete {
   color: var(--turquoise);
@@ -125,13 +199,30 @@
 .by-date-day-meta .is-locked-info {
   color: var(--muted-2);
 }
+
+.by-date-day-pending-pill {
+  background: rgba(192, 159, 219, 0.15);
+  color: var(--lavender);
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 100px;
+  border: 1px solid rgba(192, 159, 219, 0.3);
+}
+
+/* Contenedor de partidos cuando está expandido */
 .by-date-day-matches {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px 14px 14px;
+  animation: bydateFadeIn 0.2s ease;
+}
+@keyframes bydateFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* EMPTY STATE cuando no hay pendientes */
+/* EMPTY STATE */
 .by-date-empty {
   text-align: center;
   padding: 60px 24px;
@@ -155,4 +246,7 @@
   .by-date-day-title { font-size: 14px; }
   .by-date-day-title .by-date-day-num { font-size: 18px; }
   .subview-tab { padding: 7px 12px; font-size: 12px; }
+  .by-date-day-meta { padding-left: 24px; }
+  .by-date-controls { gap: 8px; }
+  .by-date-day-matches { padding: 10px; }
 }

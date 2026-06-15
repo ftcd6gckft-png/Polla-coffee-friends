@@ -11,6 +11,7 @@ import './styles/by-date.css';
 import './styles/rules-and-payments.css';
 import './styles/bolsa.css';
 import './styles/remove-member.css';
+import './styles/forgot-password.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

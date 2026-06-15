@@ -44,6 +44,10 @@ export default function Login() {
     }
   };
 
+  const forgotPath = next !== '/'
+    ? `/recuperar-password?next=${encodeURIComponent(next)}`
+    : '/recuperar-password';
+
   return (
     <div className="auth-wrap">
       <div className="auth-card">
@@ -77,6 +81,11 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
             />
+            <div style={{ textAlign: 'right', marginTop: 6 }}>
+              <Link to={forgotPath} className="auth-link-small">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
           <button type="submit" className="btn btn-accent btn-full" disabled={loading}>
             {loading ? 'Entrando…' : 'Entrar al torneo →'}

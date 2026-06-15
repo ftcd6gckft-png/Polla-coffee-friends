@@ -6,6 +6,7 @@ import RequireAuth from './components/RequireAuth.jsx';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import MyPools from './pages/MyPools.jsx';
 import CreatePool from './pages/CreatePool.jsx';
 import JoinPool from './pages/JoinPool.jsx';
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/" element={<HomeRoute />} />
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
+              <Route path="/recuperar-password" element={<ForgotPassword />} />
 
               <Route path="/crear-polla" element={
                 <RequireAuth><CreatePool /></RequireAuth>

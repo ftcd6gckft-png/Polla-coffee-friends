@@ -21,10 +21,22 @@ export default function RulesTab() {
         </div>
         <ul className="rules-list">
           <li>
+            <strong>Fase de grupos:</strong>
+          </li>
+          <li style={{ marginLeft: 16 }}>
             <strong>3 puntos</strong> por marcador exacto.
           </li>
-          <li>
+          <li style={{ marginLeft: 16 }}>
             <strong>1 punto</strong> por acertar el ganador (o empate, si pronosticaste empate).
+          </li>
+          <li>
+            <strong>Fase eliminatoria:</strong>
+          </li>
+          <li style={{ marginLeft: 16 }}>
+            <strong>5 puntos</strong> por marcador exacto (90 minutos).
+          </li>
+          <li style={{ marginLeft: 16 }}>
+            <strong>2 puntos</strong> por acertar el ganador en 90 minutos (o empate, si el partido va a penales).
           </li>
           <li>
             <strong>0 puntos</strong> por no acertar.
@@ -93,8 +105,8 @@ export default function RulesTab() {
           Si dos jugadores tienen los mismos puntos totales, se desempata en este orden:
         </p>
         <ol className="rules-list rules-list-numbered">
-          <li>Más <strong>marcadores exactos</strong> (3 puntos).</li>
-          <li>Más <strong>aciertos de ganador</strong> (1 punto).</li>
+          <li>Más <strong>marcadores exactos</strong>.</li>
+          <li>Más <strong>aciertos de ganador</strong>.</li>
           <li>Orden <strong>alfabético</strong> del nombre.</li>
         </ol>
       </section>

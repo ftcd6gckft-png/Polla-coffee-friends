@@ -41,7 +41,7 @@ export const GROUP_MATCHES = [
   { id: 'G32', group: 'D', matchday: 2, date: '2026-06-19', time: '22:00', home: 'TUR', away: 'PAR', city: 'San Francisco', venue: 'Levi\'s Stadium' },
   { id: 'G33', group: 'F', matchday: 2, date: '2026-06-20', time: '12:00', home: 'NED', away: 'SWE', city: 'Houston', venue: 'NRG Stadium' },
   { id: 'G34', group: 'E', matchday: 2, date: '2026-06-20', time: '15:00', home: 'GER', away: 'CIV', city: 'Toronto', venue: 'BMO Field' },
-  { id: 'G35', group: 'E', matchday: 2, date: '2026-06-20', time: '21:00', home: 'ECU', away: 'CUW', city: 'Kansas City', venue: 'Arrowhead Stadium' },
+  { id: 'G35', group: 'E', matchday: 2, date: '2026-06-20', time: '19:00', home: 'ECU', away: 'CUW', city: 'Kansas City', venue: 'Arrowhead Stadium' },
   { id: 'G36', group: 'F', matchday: 2, date: '2026-06-20', time: '23:00', home: 'TUN', away: 'JPN', city: 'Monterrey', venue: 'Estadio BBVA' },
   { id: 'G37', group: 'H', matchday: 2, date: '2026-06-21', time: '11:00', home: 'ESP', away: 'KSA', city: 'Atlanta', venue: 'Mercedes-Benz Stadium' },
   { id: 'G38', group: 'G', matchday: 2, date: '2026-06-21', time: '14:00', home: 'BEL', away: 'IRN', city: 'Los Ángeles', venue: 'SoFi Stadium' },

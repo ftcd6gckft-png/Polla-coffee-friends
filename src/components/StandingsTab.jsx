@@ -3,23 +3,11 @@ import {
   calcAllGroupStandings,
   calcBestThirds,
   calcGroupsProgress,
+  projectRoundOf32,
 } from '../lib/groupStandings.js';
 import { subscribeToGroupResults } from '../lib/predictions.js';
 import { GROUPS } from '../data/teams.js';
 
-/**
- * Pestaña: tablas de posiciones de la fase de grupos en tiempo real.
- *
- * Aplica criterios FIFA Mundial 2026:
- *   1. Puntos
- *   2. Enfrentamiento directo (puntos → DG → GF entre empatados)
- *   3. Diferencia de goles general
- *   4. Goles a favor general
- *   5. Alfabético (fallback; FIFA usa fair play y ranking pero no los tenemos)
- *
- * Para "mejores terceros": puntos → DG → GF → alfabético
- * (no aplica H2H porque vienen de grupos distintos).
- */
 export default function StandingsTab() {
   const [results, setResults] = useState({});
   const [activeGroup, setActiveGroup] = useState(GROUPS[0]);
@@ -33,6 +21,10 @@ export default function StandingsTab() {
   const allStandings = useMemo(() => calcAllGroupStandings(results), [results]);
   const bestThirds = useMemo(() => calcBestThirds(allStandings), [allStandings]);
   const progress = useMemo(() => calcGroupsProgress(results), [results]);
+  const bracket = useMemo(
+    () => projectRoundOf32(allStandings, bestThirds),
+    [allStandings, bestThirds]
+  );
 
   return (
     <div className="standings-tab">
@@ -69,6 +61,12 @@ export default function StandingsTab() {
         >
           🥉 Mejores terceros
         </button>
+        <button
+          className={`subview-tab ${view === 'bracket' ? 'is-active' : ''}`}
+          onClick={() => setView('bracket')}
+        >
+          🔮 Bracket proyectado
+        </button>
       </div>
 
       {view === 'groups' && (
@@ -89,20 +87,18 @@ export default function StandingsTab() {
               );
             })}
           </div>
-
           <GroupStandingsTable group={activeGroup} standings={allStandings[activeGroup]} />
         </>
       )}
 
-      {view === 'thirds' && (
-        <BestThirdsTable thirds={bestThirds} />
-      )}
+      {view === 'thirds' && <BestThirdsTable thirds={bestThirds} />}
+
+      {view === 'bracket' && <BracketProjection bracket={bracket} />}
 
       <div className="standings-disclaimer">
         ℹ️ <strong>Cómo se ordena:</strong> Puntos → Enfrentamiento directo entre empatados →
         Diferencia de goles general → Goles a favor → Orden alfabético. La FIFA aplica
-        además Fair Play y Ranking FIFA si persiste el empate (no los incluimos porque
-        la app no guarda tarjetas).
+        además Fair Play y Ranking FIFA si persiste el empate.
       </div>
     </div>
   );
@@ -219,6 +215,88 @@ function BestThirdsTable({ thirds }) {
           esta tabla se va a llenar automáticamente.
         </div>
       )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+
+function BracketProjection({ bracket }) {
+  return (
+    <div className="standings-card">
+      <div className="standings-card-head">
+        <h3 className="standings-card-title">🔮 Bracket proyectado de dieciseisavos</h3>
+        <p className="standings-card-sub">
+          Estos serían los 16 cruces de dieciseisavos según las tablas actuales.
+          Los equipos de los <strong>terceros lugares</strong> dependen de cuáles 8 grupos
+          aporten terceros clasificados — se confirmarán al terminar la fase de grupos.
+        </p>
+      </div>
+
+      <div className="bracket-proj-grid">
+        {bracket.map((m) => (
+          <BracketProjCard key={m.id} match={m} />
+        ))}
+      </div>
+
+      <div className="bracket-proj-note">
+        💡 La FIFA usa una matriz oficial de <strong>495 combinaciones</strong> para
+        asignar los terceros a cada cruce. Esta proyección solo confirma los enfrentamientos
+        entre líderes y segundos de grupo. Los terceros se acomodarán según la combinación
+        final el 28 de junio.
+      </div>
+    </div>
+  );
+}
+
+function BracketProjCard({ match }) {
+  const [y, mo, d] = (match.date || '').split('-');
+  const dateLabel = (y && mo && d) ? `${parseInt(d, 10)}/${parseInt(mo, 10)}` : '';
+  return (
+    <div className="bracket-proj-card">
+      <div className="bracket-proj-meta">
+        <span>{match.id}</span>
+        <span>·</span>
+        <span>{dateLabel} {match.time}</span>
+        {match.city && <><span>·</span><span>{match.city}</span></>}
+      </div>
+      <BracketProjSide side={match.home} />
+      <div className="bracket-proj-vs">vs</div>
+      <BracketProjSide side={match.away} />
+    </div>
+  );
+}
+
+function BracketProjSide({ side }) {
+  if (side.team) {
+    return (
+      <div className={`bracket-proj-side is-resolved is-${side.type}`}>
+        <span className="bracket-proj-flag">{side.team.flag}</span>
+        <div className="bracket-proj-info">
+          <div className="bracket-proj-team">{side.team.name}</div>
+          <div className="bracket-proj-source">{side.label}</div>
+        </div>
+      </div>
+    );
+  }
+  if (side.type === 'third') {
+    return (
+      <div className="bracket-proj-side is-unresolved is-third">
+        <span className="bracket-proj-flag">🥉</span>
+        <div className="bracket-proj-info">
+          <div className="bracket-proj-team">Por definir</div>
+          <div className="bracket-proj-source">{side.label}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="bracket-proj-side is-unresolved">
+      <span className="bracket-proj-flag">⏳</span>
+      <div className="bracket-proj-info">
+        <div className="bracket-proj-team">Por definir</div>
+        <div className="bracket-proj-source">{side.label}</div>
+      </div>
     </div>
   );
 }

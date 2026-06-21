@@ -16,7 +16,7 @@ const TABS = [
   { id: 'tablas',   label: 'Tablas', icon: '📊' },
   { id: 'bracket',  label: 'Eliminatorias',  icon: '🏆' },
   { id: 'campeon',  label: 'Campeón',        icon: '👑' },
-  { id: 'ranking',  label: 'Ranking',        icon: '📊' },
+  { id: 'ranking',  label: 'Ranking', icon: '🏅' },
   { id: 'reglas',   label: 'Reglas',         icon: '📜' },
 ];
 

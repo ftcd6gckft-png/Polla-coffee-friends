@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { getPool } from '../lib/pools.js';
 import { useToast } from '../components/Toast.jsx';
 import GroupPredictionsTab from '../components/GroupPredictionsTab.jsx';
+import StandingsTab from '../components/StandingsTab.jsx';
 import BracketTab from '../components/BracketTab.jsx';
 import ChampionTab from '../components/ChampionTab.jsx';
 import RankingTab from '../components/RankingTab.jsx';
@@ -12,6 +13,7 @@ import RankingUpdater from '../components/RankingUpdater.jsx';
 
 const TABS = [
   { id: 'grupos',   label: 'Fase de grupos', icon: '⚽' },
+  { id: 'tablas',   label: 'Tablas', icon: '📊' },
   { id: 'bracket',  label: 'Eliminatorias',  icon: '🏆' },
   { id: 'campeon',  label: 'Campeón',        icon: '👑' },
   { id: 'ranking',  label: 'Ranking',        icon: '📊' },
@@ -134,6 +136,7 @@ export default function PoolView() {
 
       <div className="pool-tab-content">
         {activeTab === 'grupos'   && <GroupPredictionsTab pollId={pool.id} />}
+        {activeTab === 'tablas'   && <StandingsTab />}
         {activeTab === 'bracket'  && <BracketTab pollId={pool.id} />}
         {activeTab === 'campeon'  && <ChampionTab pollId={pool.id} />}
         {activeTab === 'ranking'  && <RankingTab pollId={pool.id} />}

@@ -9,7 +9,7 @@ import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { TEAMS, teamLabel } from '../data/teams.js';
 import {
   subscribeToPredictions,
-  subscribeToAllPredictions,
+  subscribeToAllPoolPredictions,
 } from '../lib/predictions.js';
 import {
   saveKnockoutPrediction,
@@ -33,7 +33,7 @@ import { useNow } from '../hooks/useNow.js';
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
   const [myPredictions, setMyPredictions] = useState(null);
-  const [allPredictions, setAllPredictions] = useState({});
+  const [allPredictions, setAllPredictions] = useState([]);
   const [memberStats, setMemberStats] = useState([]);
   const [results, setResults] = useState({});
   const [bracket, setBracket] = useState({});
@@ -51,11 +51,11 @@ export default function BracketTab({ pollId }) {
     return unsub;
   }, [pollId, user?.uid]);
 
-  // Pronósticos de todos los miembros (para vista pública post-lock)
+  // Pronósticos de todos los miembros (array de { uid, ... })
   useEffect(() => {
     if (!pollId) return;
-    const unsub = subscribeToAllPredictions(pollId, (data) => {
-      setAllPredictions(data || {});
+    const unsub = subscribeToAllPoolPredictions(pollId, (data) => {
+      setAllPredictions(Array.isArray(data) ? data : []);
     });
     return unsub;
   }, [pollId]);
@@ -64,7 +64,7 @@ export default function BracketTab({ pollId }) {
   useEffect(() => {
     if (!pollId) return;
     const unsub = subscribeToPoolStats(pollId, (stats) => {
-      setMemberStats(stats || []);
+      setMemberStats(Array.isArray(stats) ? stats : []);
     });
     return unsub;
   }, [pollId]);
@@ -78,6 +78,15 @@ export default function BracketTab({ pollId }) {
       unsubB();
     };
   }, []);
+
+  // Mapa uid → predicciones para acceso rápido
+  const predsByUid = useMemo(() => {
+    const map = {};
+    for (const p of allPredictions) {
+      if (p && p.uid) map[p.uid] = p;
+    }
+    return map;
+  }, [allPredictions]);
 
   const lastGroupMatch = GROUP_MATCHES[GROUP_MATCHES.length - 1];
   const groupsFinished = isMatchLocked(lastGroupMatch, now);
@@ -116,19 +125,29 @@ export default function BracketTab({ pollId }) {
   }
 
   // Lista de miembros para el dropdown
-  const members = memberStats
-    .filter((s) => s.userId !== user.uid)
-    .map((s) => ({
-      uid: s.userId,
-      name: s.displayName || s.email || s.userId.slice(0, 6),
-    }));
+  // Usa los stats si están disponibles; si no, cae a la lista de predicciones
+  let memberList = [];
+  if (memberStats.length > 0) {
+    memberList = memberStats
+      .filter((s) => (s.userId || s.uid) !== user.uid)
+      .map((s) => ({
+        uid: s.userId || s.uid,
+        name: s.displayName || s.email || (s.userId || s.uid || '').slice(0, 6),
+      }));
+  } else {
+    // Fallback: usar los uids de allPredictions
+    memberList = allPredictions
+      .filter((p) => p.uid !== user.uid)
+      .map((p) => ({
+        uid: p.uid,
+        name: p.displayName || p.uid.slice(0, 6),
+      }));
+  }
 
   // Determinar qué predicciones mostrar
-  // - Si viewingUserId es null o el propio user, mostrar mis pronósticos.
-  // - Si es otro, mostrar los de ese miembro (pero solo en partidos bloqueados).
   const isViewingOther = !!viewingUserId && viewingUserId !== user.uid;
   const viewedUserData = isViewingOther
-    ? allPredictions[viewingUserId]
+    ? predsByUid[viewingUserId]
     : myPredictions;
   const viewedKoPreds = viewedUserData?.knockoutMatches || {};
   const myKoPreds = myPredictions?.knockoutMatches || {};
@@ -142,7 +161,7 @@ export default function BracketTab({ pollId }) {
         <strong> 2 pts</strong> acertar ganador.
       </div>
 
-      {members.length > 0 && (
+      {memberList.length > 0 && (
         <div className="public-preds-bar">
           <label className="public-preds-label" htmlFor="ko-view-select">
             Ver pronósticos de:
@@ -154,7 +173,7 @@ export default function BracketTab({ pollId }) {
             onChange={(e) => setViewingUserId(e.target.value || null)}
           >
             <option value="">📝 Mis pronósticos</option>
-            {members.map((m) => (
+            {memberList.map((m) => (
               <option key={m.uid} value={m.uid}>
                 {m.name}
               </option>
@@ -197,15 +216,12 @@ export default function BracketTab({ pollId }) {
 
                 const locked = isMatchLocked({ ...m, ...participants }, now);
 
-                // Si estoy viendo a otro miembro y el partido NO está bloqueado,
-                // muestro un placeholder pidiendo paciencia.
                 if (isViewingOther && !locked) {
                   return (
                     <LockedPrivacyCard key={m.id} match={{ ...m, ...participants }} now={now} />
                   );
                 }
 
-                // Pronóstico a mostrar
                 const predToShow = isViewingOther
                   ? viewedKoPreds[m.id]
                   : myKoPreds[m.id];
@@ -349,7 +365,6 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, rea
     setter(String(n));
   };
 
-  // Puntos con regla 5/2
   let pts = null;
   if (hasResult) {
     const ph = parseInt(scoreHome, 10);
@@ -385,7 +400,6 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, rea
     return '✗ FALLO';
   };
 
-  // Si está en readOnly y no hay pronóstico, mostrar mensaje
   const hasPred = prediction && (prediction.scoreHome != null || prediction.scoreAway != null);
 
   return (

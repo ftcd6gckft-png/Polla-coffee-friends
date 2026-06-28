@@ -7,11 +7,15 @@ import {
 } from '../data/knockoutTemplate.js';
 import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { TEAMS, teamLabel } from '../data/teams.js';
-import { subscribeToPredictions } from '../lib/predictions.js';
+import {
+  subscribeToPredictions,
+  subscribeToAllPredictions,
+} from '../lib/predictions.js';
 import {
   saveKnockoutPrediction,
   subscribeToKnockoutResults,
   subscribeToKnockoutBracket,
+  subscribeToPoolStats,
 } from '../lib/predictionsExtended.js';
 import { isMatchLocked, formatMatchDateTime, formatTimeUntilLock } from '../lib/time.js';
 import { calcKnockoutPoints } from '../lib/scoring.js';
@@ -20,28 +24,52 @@ import { useNow } from '../hooks/useNow.js';
 /**
  * Pestaña: bracket de eliminatorias.
  *
- * Usa calcKnockoutPoints para puntuar con la regla 5/2:
- *   5 puntos por marcador exacto (90 min)
- *   2 puntos por acertar ganador (90 min, o empate)
- *   0 puntos por fallo
+ * Permite:
+ *   - Pronosticar partidos abiertos (vista personal).
+ *   - Después del lock de un partido, ver pronósticos de otros miembros.
+ *
+ * Sistema de puntos KO: 5 exacto / 2 ganador / 0.
  */
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
-  const [predictions, setPredictions] = useState(null);
+  const [myPredictions, setMyPredictions] = useState(null);
+  const [allPredictions, setAllPredictions] = useState({});
+  const [memberStats, setMemberStats] = useState([]);
   const [results, setResults] = useState({});
   const [bracket, setBracket] = useState({});
   const [loading, setLoading] = useState(true);
+  const [viewingUserId, setViewingUserId] = useState(null); // null = mis pronósticos
   const now = useNow(60 * 1000);
 
+  // Mis pronósticos
   useEffect(() => {
     if (!pollId || !user) return;
     const unsub = subscribeToPredictions(pollId, user.uid, (data) => {
-      setPredictions(data);
+      setMyPredictions(data);
       setLoading(false);
     });
     return unsub;
   }, [pollId, user?.uid]);
 
+  // Pronósticos de todos los miembros (para vista pública post-lock)
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToAllPredictions(pollId, (data) => {
+      setAllPredictions(data || {});
+    });
+    return unsub;
+  }, [pollId]);
+
+  // Stats para tener los displayNames de los miembros
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToPoolStats(pollId, (stats) => {
+      setMemberStats(stats || []);
+    });
+    return unsub;
+  }, [pollId]);
+
+  // Resultados oficiales + bracket
   useEffect(() => {
     const unsubR = subscribeToKnockoutResults(setResults);
     const unsubB = subscribeToKnockoutBracket(setBracket);
@@ -53,7 +81,6 @@ export default function BracketTab({ pollId }) {
 
   const lastGroupMatch = GROUP_MATCHES[GROUP_MATCHES.length - 1];
   const groupsFinished = isMatchLocked(lastGroupMatch, now);
-  const koPreds = predictions?.knockoutMatches || {};
 
   if (loading) {
     return (
@@ -72,9 +99,9 @@ export default function BracketTab({ pollId }) {
         <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
         <h2 className="cnj-soon-title">Bracket en espera</h2>
         <p className="cnj-soon-text">
-          La fase eliminatoria se desbloquea cuando termine la fase de grupos
-          (28 de junio). En ese momento el super-admin configurará los
-          clasificados y podrás pronosticar los cruces.
+          La fase eliminatoria se desbloquea cuando termine la fase de grupos.
+          En ese momento el super-admin configurará los clasificados y podrás
+          pronosticar los cruces.
         </p>
         <div className="cnj-soon-checklist">
           <div className="cnj-soon-item">📅 Dieciseisavos · 28 jun - 3 jul</div>
@@ -88,6 +115,24 @@ export default function BracketTab({ pollId }) {
     );
   }
 
+  // Lista de miembros para el dropdown
+  const members = memberStats
+    .filter((s) => s.userId !== user.uid)
+    .map((s) => ({
+      uid: s.userId,
+      name: s.displayName || s.email || s.userId.slice(0, 6),
+    }));
+
+  // Determinar qué predicciones mostrar
+  // - Si viewingUserId es null o el propio user, mostrar mis pronósticos.
+  // - Si es otro, mostrar los de ese miembro (pero solo en partidos bloqueados).
+  const isViewingOther = !!viewingUserId && viewingUserId !== user.uid;
+  const viewedUserData = isViewingOther
+    ? allPredictions[viewingUserId]
+    : myPredictions;
+  const viewedKoPreds = viewedUserData?.knockoutMatches || {};
+  const myKoPreds = myPredictions?.knockoutMatches || {};
+
   return (
     <div className="bracket-tab">
       <div className="bracket-tip">
@@ -96,6 +141,32 @@ export default function BracketTab({ pollId }) {
         quién pasa al siguiente cruce. <strong>5 pts</strong> marcador exacto,
         <strong> 2 pts</strong> acertar ganador.
       </div>
+
+      {members.length > 0 && (
+        <div className="public-preds-bar">
+          <label className="public-preds-label" htmlFor="ko-view-select">
+            Ver pronósticos de:
+          </label>
+          <select
+            id="ko-view-select"
+            className="fi public-preds-select"
+            value={viewingUserId || ''}
+            onChange={(e) => setViewingUserId(e.target.value || null)}
+          >
+            <option value="">📝 Mis pronósticos</option>
+            {members.map((m) => (
+              <option key={m.uid} value={m.uid}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          {isViewingOther && (
+            <div className="public-preds-note">
+              👁️ Viendo a otro miembro · solo se muestran partidos cerrados.
+            </div>
+          )}
+        </div>
+      )}
 
       {PHASES_ORDER.map((phase) => {
         const matchesInPhase = KNOCKOUT_MATCHES.filter((m) => m.phase === phase);
@@ -123,15 +194,32 @@ export default function BracketTab({ pollId }) {
                 if (!participants) {
                   return <PendingMatchCard key={m.id} match={m} />;
                 }
+
+                const locked = isMatchLocked({ ...m, ...participants }, now);
+
+                // Si estoy viendo a otro miembro y el partido NO está bloqueado,
+                // muestro un placeholder pidiendo paciencia.
+                if (isViewingOther && !locked) {
+                  return (
+                    <LockedPrivacyCard key={m.id} match={{ ...m, ...participants }} now={now} />
+                  );
+                }
+
+                // Pronóstico a mostrar
+                const predToShow = isViewingOther
+                  ? viewedKoPreds[m.id]
+                  : myKoPreds[m.id];
+
                 return (
                   <KnockoutMatchCard
                     key={m.id}
                     match={{ ...m, ...participants }}
-                    prediction={koPreds[m.id]}
+                    prediction={predToShow}
                     result={results[m.id]}
                     now={now}
                     pollId={pollId}
                     userId={user.uid}
+                    readOnly={isViewingOther}
                   />
                 );
               })}
@@ -176,7 +264,32 @@ function PendingMatchCard({ match }) {
   );
 }
 
-function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
+function LockedPrivacyCard({ match, now }) {
+  return (
+    <div className="ko-card is-pending">
+      <div className="ko-card-meta">
+        <span>{formatMatchDateTime(match)}</span>
+        <span className="m-status m-status-open">
+          🔒 Cierra en {formatTimeUntilLock(match, now)}
+        </span>
+      </div>
+      <div className="ko-card-body">
+        <div className="ko-team ko-team-home">{teamLabel(match.home)}</div>
+        <div className="ko-score">
+          <span className="ko-vs">vs</span>
+        </div>
+        <div className="ko-team ko-team-away">{teamLabel(match.away)}</div>
+      </div>
+      <div className="ko-card-footer">
+        <span style={{ fontSize: 11, color: 'var(--muted-2)', textAlign: 'center', width: '100%' }}>
+          🔐 El pronóstico se podrá ver cuando se cierre el partido
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, readOnly }) {
   const locked = isMatchLocked(match, now);
   const hasResult = !!result;
 
@@ -195,7 +308,7 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
   }, [prediction?.scoreHome, prediction?.scoreAway]);
 
   useEffect(() => {
-    if (locked) return;
+    if (locked || readOnly) return;
     const ph = parseInt(scoreHome, 10);
     const pa = parseInt(scoreAway, 10);
     if (Number.isNaN(ph) || Number.isNaN(pa) || ph < 0 || pa < 0) return;
@@ -226,7 +339,7 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [scoreHome, scoreAway, locked, match.id, match.home, match.away, pollId, userId]);
+  }, [scoreHome, scoreAway, locked, readOnly, match.id, match.home, match.away, pollId, userId]);
 
   const handleNumeric = (setter) => (e) => {
     const v = e.target.value.replace(/[^0-9]/g, '');
@@ -236,7 +349,7 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     setter(String(n));
   };
 
-  // Puntos: calculados con la regla 5/2 de eliminatorias
+  // Puntos con regla 5/2
   let pts = null;
   if (hasResult) {
     const ph = parseInt(scoreHome, 10);
@@ -253,7 +366,9 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
   let statusClass = 'm-status';
   if (hasResult) {
     statusLabel = `Resultado: ${result.scoreHome}-${result.scoreAway}${
-      result.winner && result.scoreHome === result.scoreAway ? ` (pen. ${TEAMS.find(t=>t.code===result.winner)?.name || result.winner})` : ''
+      result.winner && result.scoreHome === result.scoreAway
+        ? ` (pen. ${TEAMS.find((t) => t.code === result.winner)?.name || result.winner})`
+        : ''
     }`;
     statusClass += ' m-status-final';
   } else if (locked) {
@@ -264,12 +379,14 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
     statusClass += ' m-status-open';
   }
 
-  // Etiqueta de puntos según la regla 5/2
   const ptsLabel = (n) => {
     if (n === 5) return '🎯 EXACTO';
     if (n === 2) return '✓ GANADOR';
     return '✗ FALLO';
   };
+
+  // Si está en readOnly y no hay pronóstico, mostrar mensaje
+  const hasPred = prediction && (prediction.scoreHome != null || prediction.scoreAway != null);
 
   return (
     <div className={`ko-card ${locked ? 'is-locked' : ''} ${hasResult ? 'has-result' : ''}`}>
@@ -280,30 +397,36 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
       <div className="ko-card-body">
         <div className="ko-team ko-team-home">{teamLabel(match.home)}</div>
         <div className="ko-score">
-          <input
-            type="text"
-            inputMode="numeric"
-            className="pred-input"
-            value={scoreHome}
-            onChange={handleNumeric(setScoreHome)}
-            disabled={locked}
-            aria-label="Goles local"
-          />
-          <span className="pred-dash">–</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="pred-input"
-            value={scoreAway}
-            onChange={handleNumeric(setScoreAway)}
-            disabled={locked}
-            aria-label="Goles visitante"
-          />
+          {readOnly && !hasPred ? (
+            <span className="pred-empty">— : —</span>
+          ) : (
+            <>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="pred-input"
+                value={scoreHome}
+                onChange={handleNumeric(setScoreHome)}
+                disabled={locked || readOnly}
+                aria-label="Goles local"
+              />
+              <span className="pred-dash">–</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="pred-input"
+                value={scoreAway}
+                onChange={handleNumeric(setScoreAway)}
+                disabled={locked || readOnly}
+                aria-label="Goles visitante"
+              />
+            </>
+          )}
         </div>
         <div className="ko-team ko-team-away">{teamLabel(match.away)}</div>
       </div>
       <div className="ko-card-footer">
-        {!locked && (saving || flash) && (
+        {!locked && !readOnly && (saving || flash) && (
           <span className={`pred-save-flash ${flash ? 'shown' : ''}`}>
             {saving ? 'Guardando…' : '✓ Guardado'}
           </span>
@@ -311,6 +434,11 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
         {pts != null && (
           <span className={`pred-points pred-pts-${pts}`}>
             {ptsLabel(pts)} · +{pts}
+          </span>
+        )}
+        {readOnly && !hasPred && (
+          <span style={{ fontSize: 11, color: 'var(--muted-2)' }}>
+            Este miembro no pronosticó este partido
           </span>
         )}
         {match.city && <span className="ko-venue">{match.city}</span>}

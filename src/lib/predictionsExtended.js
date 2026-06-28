@@ -7,6 +7,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
+import { propagateAfterKnockoutResult } from './bracketPropagation.js';
 
 const predRef = (pollId, userId) =>
   doc(db, 'pools', pollId, 'predictions', userId);

@@ -17,7 +17,7 @@ export const KNOCKOUT_MATCHES = [
   { id: 'K10', phase: 'r32', date: '2026-07-01', time: '15:00', homeSlot: '1G',           awaySlot: '3A/E/H/I/J',    city: 'Seattle',          venue: 'Lumen Field' },
   { id: 'K11', phase: 'r32', date: '2026-07-02', time: '18:00', homeSlot: '2K',           awaySlot: '2L',            city: 'Toronto',          venue: 'BMO Field' },
   { id: 'K12', phase: 'r32', date: '2026-07-02', time: '14:00', homeSlot: '1H',           awaySlot: '2J',            city: 'Los Ángeles',      venue: 'SoFi Stadium' },
-  { id: 'K13', phase: 'r32', date: '2026-07-02', time: '18:00', homeSlot: '1B',           awaySlot: '3E/F/G/I/J',    city: 'Vancouver',        venue: 'BC Place' },
+  { id: 'K13', phase: 'r32', date: '2026-07-02', time: '22:00', homeSlot: '1B',           awaySlot: '3E/F/G/I/J',    city: 'Vancouver',        venue: 'BC Place' },
   { id: 'K14', phase: 'r32', date: '2026-07-03', time: '17:00', homeSlot: '1J',           awaySlot: '2H',            city: 'Miami',            venue: 'Hard Rock Stadium' },
   { id: 'K15', phase: 'r32', date: '2026-07-03', time: '20:30', homeSlot: '1K',           awaySlot: '3D/E/I/J/L',    city: 'Kansas City',      venue: 'Arrowhead Stadium' },
   { id: 'K16', phase: 'r32', date: '2026-07-03', time: '13:00', homeSlot: '2D',           awaySlot: '2G',            city: 'Dallas',           venue: 'AT&T Stadium' },

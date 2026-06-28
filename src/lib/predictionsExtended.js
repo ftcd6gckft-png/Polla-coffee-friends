@@ -89,8 +89,6 @@ export async function saveOfficialKnockoutResult(matchId, payload) {
     console.warn('[propagate] no se pudo propagar el ganador:', e);
   }
 }
-  }
-}
 
 export async function clearOfficialKnockoutResult(matchId) {
   const ref = knockoutResultsRef();

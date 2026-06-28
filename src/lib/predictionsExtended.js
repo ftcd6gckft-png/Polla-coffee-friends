@@ -96,6 +96,12 @@ export async function clearOfficialKnockoutResult(matchId) {
   const data = snap.data() || {};
   delete data[matchId];
   await setDoc(ref, data);
+  // ↓ NUEVO: limpiar propagación en cruces siguientes
+  try {
+    await clearPropagationFromMatch(matchId);
+  } catch (e) {
+    console.warn('[clear-propagate] no se pudo limpiar la propagación:', e);
+  }
 }
 
 // ─── OFFICIAL RESULTS: groupMatches (admin) ──────────────────────

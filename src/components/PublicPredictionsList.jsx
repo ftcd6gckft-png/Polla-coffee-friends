@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcMatchPoints, isPredictionComplete } from '../lib/scoring.js';
+import { calcMatchPoints, calcKnockoutPoints, isPredictionComplete } from '../lib/scoring.js';
 
 /**
  * Lista de pronósticos de TODOS los miembros para un partido específico.
@@ -13,6 +13,10 @@ import { calcMatchPoints, isPredictionComplete } from '../lib/scoring.js';
  *   phase           → 'group' | 'knockout'
  *   currentUid      → para resaltar al usuario actual
  *   show            → boolean, controla visibilidad del desplegable
+ *
+ * Puntuación:
+ *   - group: 3 exacto / 1 ganador / 0
+ *   - knockout: 5 exacto / 2 ganador / 0
  */
 export default function PublicPredictionsList({
   allPredictions,
@@ -23,7 +27,7 @@ export default function PublicPredictionsList({
   currentUid,
   show,
 }) {
-  // Mapa uid → displayName (de stats, que es público y siempre tiene nombre)
+  // Mapa uid → displayName
   const nameByUid = useMemo(() => {
     const m = {};
     (stats || []).forEach((s) => {
@@ -46,14 +50,16 @@ export default function PublicPredictionsList({
       }
       const hasPred = isPredictionComplete(pred);
 
-      // Calcular puntos si hay resultado oficial
+      // Calcular puntos si hay resultado oficial. Usar la fórmula correcta según fase.
       let pts = null;
       if (hasPred && result) {
         const r =
           phase === 'group'
             ? { home: result.home, away: result.away }
             : { home: result.scoreHome, away: result.scoreAway };
-        pts = calcMatchPoints(pred, r);
+        pts = phase === 'knockout'
+          ? calcKnockoutPoints(pred, r)
+          : calcMatchPoints(pred, r);
       }
 
       return {
@@ -66,23 +72,19 @@ export default function PublicPredictionsList({
     });
   }, [allPredictions, match.id, phase, result, nameByUid]);
 
-  // Ordenar: con puntos exactos (3) primero, luego ganador (1), luego sin puntos, luego sin pronóstico
+  // Ordenar: puntos altos primero, luego sin puntos, luego sin pronóstico
   const sorted = useMemo(() => {
     return [...rows].sort((a, b) => {
-      // Sin pronóstico va al final
       if (!a.hasPred && b.hasPred) return 1;
       if (a.hasPred && !b.hasPred) return -1;
-      // Si ambos tienen pronóstico, ordenar por puntos descendente
       if (a.pts != null && b.pts != null) {
         if (b.pts !== a.pts) return b.pts - a.pts;
       }
-      // Alfabético
       return (a.name || '').localeCompare(b.name || '');
     });
   }, [rows]);
 
   if (!show) return null;
-
   if (sorted.length === 0) {
     return (
       <div className="pub-preds-empty">
@@ -96,10 +98,11 @@ export default function PublicPredictionsList({
       {sorted.map((row) => {
         const isMe = row.uid === currentUid;
         let ptsBadge = null;
-        if (row.pts === 3) ptsBadge = <span className="pub-pts pub-pts-3">+3</span>;
-        else if (row.pts === 1) ptsBadge = <span className="pub-pts pub-pts-1">+1</span>;
-        else if (row.pts === 0) ptsBadge = <span className="pub-pts pub-pts-0">0</span>;
-
+        if (row.pts != null) {
+          // Para grupos: 3/1/0. Para knockout: 5/2/0.
+          // Usamos la misma clase pub-pts-X dinámica.
+          ptsBadge = <span className={`pub-pts pub-pts-${row.pts}`}>+{row.pts}</span>;
+        }
         return (
           <div key={row.uid} className={`pub-pred-row ${isMe ? 'is-me' : ''}`}>
             <span className="pub-pred-name">

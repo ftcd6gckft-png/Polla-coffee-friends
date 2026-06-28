@@ -9,7 +9,7 @@ export const KNOCKOUT_MATCHES = [
   { id: 'K01', phase: 'r32', date: '2026-06-28', time: '18:00', homeSlot: '2A',           awaySlot: '2B',            city: 'Los Ángeles',      venue: 'SoFi Stadium' },
   { id: 'K02', phase: 'r32', date: '2026-06-29', time: '13:00', homeSlot: '1E',           awaySlot: '3A/B/C/D/F',    city: 'Boston',           venue: 'Gillette Stadium' },
   { id: 'K03', phase: 'r32', date: '2026-06-29', time: '16:00', homeSlot: '1F',           awaySlot: '2C',            city: 'Monterrey',        venue: 'Estadio BBVA' },
-  { id: 'K04', phase: 'r32', date: '2026-06-29', time: '19:00', homeSlot: '1C',           awaySlot: '3A/B/F/G/H',    city: 'Houston',          venue: 'NRG Stadium' },
+  { id: 'K04', phase: 'r32', date: '2026-06-29', time: '19:00', homeSlot: '1C',           awaySlot: '2F',            city: 'Houston',          venue: 'NRG Stadium' },
   { id: 'K05', phase: 'r32', date: '2026-06-30', time: '13:00', homeSlot: '1I',           awaySlot: '3C/D/F/G/H',    city: 'East Rutherford',  venue: 'MetLife Stadium' },
   { id: 'K06', phase: 'r32', date: '2026-06-30', time: '16:00', homeSlot: '2E',           awaySlot: '2I',            city: 'Dallas',           venue: 'AT&T Stadium' },
   { id: 'K07', phase: 'r32', date: '2026-06-30', time: '19:00', homeSlot: '1A',           awaySlot: '3C/E/F/H/I',    city: 'Ciudad de México', venue: 'Estadio Azteca' },

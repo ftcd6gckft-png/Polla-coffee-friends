@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import {
   KNOCKOUT_MATCHES,
@@ -7,28 +7,29 @@ import {
 } from '../data/knockoutTemplate.js';
 import { GROUP_MATCHES } from '../data/groupMatches.js';
 import { TEAMS, teamLabel } from '../data/teams.js';
-import {
-  subscribeToPredictions,
-  subscribeToAllPoolPredictions,
-} from '../lib/predictions.js';
+import { subscribeToPredictions } from '../lib/predictions.js';
 import {
   saveKnockoutPrediction,
   subscribeToKnockoutResults,
   subscribeToKnockoutBracket,
-  subscribeToPoolStats,
 } from '../lib/predictionsExtended.js';
 import { isMatchLocked, formatMatchDateTime, formatTimeUntilLock } from '../lib/time.js';
-import { calcMatchPoints, pointsLabel } from '../lib/scoring.js';
+import { calcKnockoutPoints } from '../lib/scoring.js';
 import { useNow } from '../hooks/useNow.js';
-import PublicPredictionsList from './PublicPredictionsList.jsx';
 
+/**
+ * Pestaña: bracket de eliminatorias.
+ *
+ * Usa calcKnockoutPoints para puntuar con la regla 5/2:
+ *   5 puntos por marcador exacto (90 min)
+ *   2 puntos por acertar ganador (90 min, o empate)
+ *   0 puntos por fallo
+ */
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState(null);
   const [results, setResults] = useState({});
   const [bracket, setBracket] = useState({});
-  const [allPredictions, setAllPredictions] = useState([]);
-  const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const now = useNow(60 * 1000);
 
@@ -50,21 +51,8 @@ export default function BracketTab({ pollId }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!pollId) return;
-    const unsub = subscribeToAllPoolPredictions(pollId, setAllPredictions);
-    return unsub;
-  }, [pollId]);
-
-  useEffect(() => {
-    if (!pollId) return;
-    const unsub = subscribeToPoolStats(pollId, setStats);
-    return unsub;
-  }, [pollId]);
-
   const lastGroupMatch = GROUP_MATCHES[GROUP_MATCHES.length - 1];
   const groupsFinished = isMatchLocked(lastGroupMatch, now);
-
   const koPreds = predictions?.knockoutMatches || {};
 
   if (loading) {
@@ -104,16 +92,14 @@ export default function BracketTab({ pollId }) {
     <div className="bracket-tab">
       <div className="bracket-tip">
         <strong>📌 Cómo funciona:</strong> Pronostica el marcador del tiempo regular
-        (90 minutos). Los penales no cuentan para los puntos pero sí definen quién pasa
-        al siguiente cruce. Las reglas son las mismas que en fase de grupos: 3 pts
-        marcador exacto, 1 pt acertar ganador. Cuando arranca cada partido, podrás ver
-        los pronósticos de toda la polla.
+        (90 minutos) — los penales no cuentan para los puntos pero sí definen
+        quién pasa al siguiente cruce. <strong>5 pts</strong> marcador exacto,
+        <strong> 2 pts</strong> acertar ganador.
       </div>
 
       {PHASES_ORDER.map((phase) => {
         const matchesInPhase = KNOCKOUT_MATCHES.filter((m) => m.phase === phase);
         const configured = matchesInPhase.filter((m) => bracket[m.id]);
-
         if (configured.length === 0) {
           return (
             <PhaseLockedBlock
@@ -123,7 +109,6 @@ export default function BracketTab({ pollId }) {
             />
           );
         }
-
         return (
           <div key={phase} className="bracket-phase">
             <div className="bracket-phase-header">
@@ -147,8 +132,6 @@ export default function BracketTab({ pollId }) {
                     now={now}
                     pollId={pollId}
                     userId={user.uid}
-                    allPredictions={allPredictions}
-                    stats={stats}
                   />
                 );
               })}
@@ -193,13 +176,16 @@ function PendingMatchCard({ match }) {
   );
 }
 
-function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, allPredictions, stats }) {
+function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
   const locked = isMatchLocked(match, now);
   const hasResult = !!result;
-  const [showPublic, setShowPublic] = useState(false);
 
-  const [scoreHome, setScoreHome] = useState(prediction?.scoreHome?.toString() ?? '');
-  const [scoreAway, setScoreAway] = useState(prediction?.scoreAway?.toString() ?? '');
+  const [scoreHome, setScoreHome] = useState(
+    prediction?.scoreHome?.toString() ?? ''
+  );
+  const [scoreAway, setScoreAway] = useState(
+    prediction?.scoreAway?.toString() ?? ''
+  );
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState(false);
 
@@ -250,13 +236,13 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, all
     setter(String(n));
   };
 
-  // Puntos: solo importa el marcador (no los equipos)
+  // Puntos: calculados con la regla 5/2 de eliminatorias
   let pts = null;
   if (hasResult) {
     const ph = parseInt(scoreHome, 10);
     const pa = parseInt(scoreAway, 10);
     if (!Number.isNaN(ph) && !Number.isNaN(pa)) {
-      pts = calcMatchPoints(
+      pts = calcKnockoutPoints(
         { home: ph, away: pa },
         { home: result.scoreHome, away: result.scoreAway }
       );
@@ -278,10 +264,12 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, all
     statusClass += ' m-status-open';
   }
 
-  const predCount = (allPredictions || []).filter((p) => {
-    const ko = p.knockoutMatches?.[match.id];
-    return ko && ko.scoreHome != null && ko.scoreAway != null;
-  }).length;
+  // Etiqueta de puntos según la regla 5/2
+  const ptsLabel = (n) => {
+    if (n === 5) return '🎯 EXACTO';
+    if (n === 2) return '✓ GANADOR';
+    return '✗ FALLO';
+  };
 
   return (
     <div className={`ko-card ${locked ? 'is-locked' : ''} ${hasResult ? 'has-result' : ''}`}>
@@ -322,32 +310,11 @@ function KnockoutMatchCard({ match, prediction, result, now, pollId, userId, all
         )}
         {pts != null && (
           <span className={`pred-points pred-pts-${pts}`}>
-            {pointsLabel(pts)} · +{pts}
+            {ptsLabel(pts)} · +{pts}
           </span>
         )}
         {match.city && <span className="ko-venue">{match.city}</span>}
       </div>
-
-      {locked && predCount > 0 && (
-        <div className="pred-card-public">
-          <button
-            className="pub-preds-toggle"
-            onClick={() => setShowPublic((s) => !s)}
-            aria-expanded={showPublic}
-          >
-            {showPublic ? '▴ Ocultar pronósticos' : `▾ Ver pronósticos de la polla (${predCount})`}
-          </button>
-          <PublicPredictionsList
-            allPredictions={allPredictions}
-            stats={stats}
-            match={match}
-            result={result}
-            phase="knockout"
-            currentUid={userId}
-            show={showPublic}
-          />
-        </div>
-      )}
     </div>
   );
 }

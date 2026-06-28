@@ -90,7 +90,6 @@ export async function saveOfficialKnockoutResult(matchId, payload) {
   }
 }
   }
-  }
 }
 
 export async function clearOfficialKnockoutResult(matchId) {

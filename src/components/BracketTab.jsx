@@ -6,20 +6,24 @@ import {
   PHASES_ORDER,
 } from '../data/knockoutTemplate.js';
 import { GROUP_MATCHES } from '../data/groupMatches.js';
-import { TEAMS, teamLabel } from '../data/teams.js';
-import { subscribeToPredictions } from '../lib/predictions.js';
 import {
-  saveKnockoutPrediction,
+  subscribeToPredictions,
+  subscribeToAllPoolPredictions,
+} from '../lib/predictions.js';
+import {
   subscribeToKnockoutResults,
   subscribeToKnockoutBracket,
+  subscribeToPoolStats,
 } from '../lib/predictionsExtended.js';
-import { isMatchLocked, formatMatchDateTime, formatTimeUntilLock } from '../lib/time.js';
-import { calcKnockoutPoints } from '../lib/scoring.js';
+import { isMatchLocked, formatMatchDateTime } from '../lib/time.js';
 import { useNow } from '../hooks/useNow.js';
+import KnockoutPredictionCard from './KnockoutPredictionCard.jsx';
 
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState(null);
+  const [allPredictions, setAllPredictions] = useState([]);
+  const [stats, setStats] = useState([]);
   const [results, setResults] = useState({});
   const [bracket, setBracket] = useState({});
   const [loading, setLoading] = useState(true);
@@ -33,6 +37,18 @@ export default function BracketTab({ pollId }) {
     });
     return unsub;
   }, [pollId, user?.uid]);
+
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToAllPoolPredictions(pollId, setAllPredictions);
+    return unsub;
+  }, [pollId]);
+
+  useEffect(() => {
+    if (!pollId) return;
+    const unsub = subscribeToPoolStats(pollId, setStats);
+    return unsub;
+  }, [pollId]);
 
   useEffect(() => {
     const unsubR = subscribeToKnockoutResults(setResults);
@@ -116,7 +132,7 @@ export default function BracketTab({ pollId }) {
                   return <PendingMatchCard key={m.id} match={m} />;
                 }
                 return (
-                  <KnockoutMatchCard
+                  <KnockoutPredictionCard
                     key={m.id}
                     match={{ ...m, ...participants }}
                     prediction={koPreds[m.id]}
@@ -124,6 +140,8 @@ export default function BracketTab({ pollId }) {
                     now={now}
                     pollId={pollId}
                     userId={user.uid}
+                    allPredictions={allPredictions}
+                    stats={stats}
                   />
                 );
               })}
@@ -162,149 +180,6 @@ function PendingMatchCard({ match }) {
         <span className="ko-pending-team">{match.awaySlot}</span>
       </div>
       {match.city && <div className="ko-venue">{match.city}</div>}
-    </div>
-  );
-}
-
-function KnockoutMatchCard({ match, prediction, result, now, pollId, userId }) {
-  const locked = isMatchLocked(match, now);
-  const hasResult = !!result;
-
-  const [scoreHome, setScoreHome] = useState(
-    prediction?.scoreHome?.toString() ?? ''
-  );
-  const [scoreAway, setScoreAway] = useState(
-    prediction?.scoreAway?.toString() ?? ''
-  );
-  const [saving, setSaving] = useState(false);
-  const [flash, setFlash] = useState(false);
-
-  useEffect(() => {
-    setScoreHome(prediction?.scoreHome?.toString() ?? '');
-    setScoreAway(prediction?.scoreAway?.toString() ?? '');
-  }, [prediction?.scoreHome, prediction?.scoreAway]);
-
-  useEffect(() => {
-    if (locked) return;
-    const ph = parseInt(scoreHome, 10);
-    const pa = parseInt(scoreAway, 10);
-    if (Number.isNaN(ph) || Number.isNaN(pa) || ph < 0 || pa < 0) return;
-    if (
-      prediction &&
-      prediction.scoreHome === ph &&
-      prediction.scoreAway === pa &&
-      prediction.home === match.home &&
-      prediction.away === match.away
-    )
-      return;
-
-    const t = setTimeout(async () => {
-      setSaving(true);
-      try {
-        await saveKnockoutPrediction(pollId, userId, match.id, {
-          home: match.home,
-          away: match.away,
-          scoreHome: ph,
-          scoreAway: pa,
-        });
-        setFlash(true);
-        setTimeout(() => setFlash(false), 1200);
-      } catch (e) {
-        console.error('[ko-save]', e);
-      } finally {
-        setSaving(false);
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [scoreHome, scoreAway, locked, match.id, match.home, match.away, pollId, userId]);
-
-  const handleNumeric = (setter) => (e) => {
-    const v = e.target.value.replace(/[^0-9]/g, '');
-    if (v === '') return setter('');
-    const n = parseInt(v, 10);
-    if (n > 20) return setter('20');
-    setter(String(n));
-  };
-
-  let pts = null;
-  if (hasResult) {
-    const ph = parseInt(scoreHome, 10);
-    const pa = parseInt(scoreAway, 10);
-    if (!Number.isNaN(ph) && !Number.isNaN(pa)) {
-      pts = calcKnockoutPoints(
-        { home: ph, away: pa },
-        { home: result.scoreHome, away: result.scoreAway }
-      );
-    }
-  }
-
-  let statusLabel;
-  let statusClass = 'm-status';
-  if (hasResult) {
-    statusLabel = `Resultado: ${result.scoreHome}-${result.scoreAway}${
-      result.winner && result.scoreHome === result.scoreAway
-        ? ` (pen. ${TEAMS.find((t) => t.code === result.winner)?.name || result.winner})`
-        : ''
-    }`;
-    statusClass += ' m-status-final';
-  } else if (locked) {
-    statusLabel = '🔒 Cerrado · esperando resultado';
-    statusClass += ' m-status-locked';
-  } else {
-    statusLabel = `Cierra en ${formatTimeUntilLock(match, now)}`;
-    statusClass += ' m-status-open';
-  }
-
-  const ptsLabel = (n) => {
-    if (n === 5) return '🎯 EXACTO';
-    if (n === 2) return '✓ GANADOR';
-    return '✗ FALLO';
-  };
-
-  return (
-    <div className={`ko-card ${locked ? 'is-locked' : ''} ${hasResult ? 'has-result' : ''}`}>
-      <div className="ko-card-meta">
-        <span>{formatMatchDateTime(match)}</span>
-        <span className={statusClass}>{statusLabel}</span>
-      </div>
-      <div className="ko-card-body">
-        <div className="ko-team ko-team-home">{teamLabel(match.home)}</div>
-        <div className="ko-score">
-          <input
-            type="text"
-            inputMode="numeric"
-            className="pred-input"
-            value={scoreHome}
-            onChange={handleNumeric(setScoreHome)}
-            disabled={locked}
-            aria-label="Goles local"
-          />
-          <span className="pred-dash">–</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="pred-input"
-            value={scoreAway}
-            onChange={handleNumeric(setScoreAway)}
-            disabled={locked}
-            aria-label="Goles visitante"
-          />
-        </div>
-        <div className="ko-team ko-team-away">{teamLabel(match.away)}</div>
-      </div>
-      <div className="ko-card-footer">
-        {!locked && (saving || flash) && (
-          <span className={`pred-save-flash ${flash ? 'shown' : ''}`}>
-            {saving ? 'Guardando…' : '✓ Guardado'}
-          </span>
-        )}
-        {pts != null && (
-          <span className={`pred-points pred-pts-${pts}`}>
-            {ptsLabel(pts)} · +{pts}
-          </span>
-        )}
-        {match.city && <span className="ko-venue">{match.city}</span>}
-      </div>
     </div>
   );
 }

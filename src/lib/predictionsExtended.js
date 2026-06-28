@@ -80,6 +80,12 @@ export async function saveOfficialKnockoutResult(matchId, payload) {
     await updateDoc(ref, { [matchId]: payload });
   } else {
     await setDoc(ref, { [matchId]: payload });
+    // ↓ Propagación automática del ganador al siguiente cruce
+  try {
+    await propagateAfterKnockoutResult(matchId, payload);
+  } catch (e) {
+    console.warn('[propagate] no se pudo propagar el ganador:', e);
+  }
   }
 }
 

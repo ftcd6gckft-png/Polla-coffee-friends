@@ -19,6 +19,17 @@ import { isMatchLocked, formatMatchDateTime } from '../lib/time.js';
 import { useNow } from '../hooks/useNow.js';
 import KnockoutPredictionCard from './KnockoutPredictionCard.jsx';
 
+/**
+ * Ordena partidos por fecha + hora (cronológico real).
+ */
+function sortChronologically(matches) {
+  return [...matches].sort((a, b) => {
+    const dateCompare = (a.date || '').localeCompare(b.date || '');
+    if (dateCompare !== 0) return dateCompare;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+}
+
 export default function BracketTab({ pollId }) {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState(null);
@@ -106,7 +117,9 @@ export default function BracketTab({ pollId }) {
       </div>
 
       {PHASES_ORDER.map((phase) => {
-        const matchesInPhase = KNOCKOUT_MATCHES.filter((m) => m.phase === phase);
+        const matchesInPhase = sortChronologically(
+          KNOCKOUT_MATCHES.filter((m) => m.phase === phase)
+        );
         const configured = matchesInPhase.filter((m) => bracket[m.id]);
         if (configured.length === 0) {
           return (

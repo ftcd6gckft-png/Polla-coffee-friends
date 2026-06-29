@@ -13,11 +13,11 @@ import RankingUpdater from '../components/RankingUpdater.jsx';
 
 const TABS = [
   { id: 'grupos',   label: 'Fase de grupos', icon: '⚽' },
-  { id: 'tablas',   label: 'Tablas', icon: '📊' },
-  { id: 'bracket',  label: 'Eliminatorias',  icon: '🏆' },
+  { id: 'bracket',  label: 'Eliminatorias',  icon: '⚽' },
   { id: 'campeon',  label: 'Campeón',        icon: '👑' },
   { id: 'ranking',  label: 'Ranking', icon: '🏅' },
   { id: 'reglas',   label: 'Reglas',         icon: '📜' },
+  { id: 'tablas',   label: 'Tablas', icon: '📊' },
 ];
 
 export default function PoolView() {

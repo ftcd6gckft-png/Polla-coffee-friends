@@ -39,7 +39,7 @@ export const KNOCKOUT_MATCHES = [
   { id: 'K28', phase: 'qf',  date: '2026-07-11', time: '20:00', homeSlot: 'W K23',        awaySlot: 'W K24',         city: 'Kansas City',      venue: 'Arrowhead Stadium' },
 
   // ─── SEMIFINALES (SF) - Jul 14 y Jul 15 ───────────────────────
-  { id: 'K29', phase: 'sf',  date: '2026-07-14', time: '16:00', homeSlot: 'W K25',        awaySlot: 'W K26',         city: 'Dallas',           venue: 'AT&T Stadium' },
+  { id: 'K29', phase: 'sf',  date: '2026-07-14', time: '14:00', homeSlot: 'W K25',        awaySlot: 'W K26',         city: 'Dallas',           venue: 'AT&T Stadium' },
   { id: 'K30', phase: 'sf',  date: '2026-07-15', time: '14:00', homeSlot: 'W K27',        awaySlot: 'W K28',         city: 'Atlanta',          venue: 'Mercedes-Benz Stadium' },
 
   // ─── TERCER PUESTO - Jul 18 ───────────────────────────────────
